@@ -1,8 +1,11 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class AuthService with ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   User? _user;
 
   User? get user => _user;
@@ -23,21 +26,33 @@ class AuthService with ChangeNotifier {
       );
       return result.user;
     } catch (e) {
-      print(e.toString());
+      debugPrint(e.toString());
       return null;
     }
   }
 
   // Register with email and password
-  Future<User?> registerWithEmailAndPassword(String email, String password) async {
+  Future<User?> registerWithEmailAndPassword(String email, String password, String name, String role) async {
     try {
       UserCredential result = await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
-      return result.user;
+      User? user = result.user;
+
+      // Create a new document for the user with the uid
+      await _firestore.collection('users').doc(user!.uid).set({
+        'name': name,
+        'email': email,
+        'role': role,
+        'points': 0,
+        'joinedActivities': [],
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      return user;
     } catch (e) {
-      print(e.toString());
+      debugPrint(e.toString());
       return null;
     }
   }
@@ -45,10 +60,9 @@ class AuthService with ChangeNotifier {
   // Sign out
   Future<void> signOut() async {
     try {
-      return await _auth.signOut();
+      await _auth.signOut();
     } catch (e) {
-      print(e.toString());
-      return null;
+      debugPrint(e.toString());
     }
   }
 }

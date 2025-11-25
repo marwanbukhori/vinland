@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "748324374924",
+    "project_id": "engage360-fd4fa",
+    "storage_bucket": "engage360-fd4fa.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:748324374924:android:65e9d65c5caf820f5beea9",
+        "android_client_info": {
+          "package_name": "com.example.engage360"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDxgp2VD0M_BA7PnRzqXvizHvu8JFyaR8M"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
