@@ -49,10 +49,13 @@ class Wrapper extends StatelessWidget {
 }
 
 ThemeData _buildTheme() {
-  const Color primaryColor = Color(0xFFFF3D71);
+  const Color primaryColor = Color(0xFFFF6B9D);
+  const Color primaryLightColor = Color(0xFFFFEEF2);
   const Color secondaryColor = Color(0xFFFFA3C1);
-  const Color backgroundColor = Color(0xFFFDFDFE);
+  const Color backgroundColor = Color(0xFFFAFAFA);
   const Color surfaceColor = Colors.white;
+  const Color greyTextColor = Color(0xFF9698A9);
+  const Color blackTextColor = Color(0xFF040303);
 
   final ColorScheme colorScheme = const ColorScheme.light().copyWith(
     primary: primaryColor,
@@ -66,7 +69,8 @@ ThemeData _buildTheme() {
     useMaterial3: true,
     colorScheme: colorScheme,
     scaffoldBackgroundColor: backgroundColor,
-    fontFamily: 'SF Pro Display',
+    primaryColor: primaryColor,
+    primaryColorLight: primaryLightColor,
     appBarTheme: const AppBarTheme(
       backgroundColor: surfaceColor,
       elevation: 0,
@@ -171,22 +175,24 @@ ThemeData _buildTheme() {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
     ),
     navigationBarTheme: NavigationBarThemeData(
-      indicatorColor: primaryColor.withOpacity(0.15),
+      indicatorColor: primaryLightColor,
       labelTextStyle: WidgetStateProperty.all(
         const TextStyle(
           fontSize: 12,
-          fontWeight: FontWeight.w600,
-          color: Color(0xFF1F1F1F),
+          fontWeight: FontWeight.w500,
+          color: blackTextColor,
         ),
       ),
-      labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+      labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,
       backgroundColor: surfaceColor,
+      elevation: 0,
+      height: 60,
       iconTheme: WidgetStateProperty.resolveWith(
         (states) => IconThemeData(
-          color: states.contains(WidgetState.selected) ? primaryColor : const Color(0xFF9A9A9A),
+          color: states.contains(WidgetState.selected) ? primaryColor : greyTextColor,
+          size: 24,
         ),
       ),
-      height: 78,
     ),
     floatingActionButtonTheme: const FloatingActionButtonThemeData(
       backgroundColor: primaryColor,

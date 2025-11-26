@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -8,8 +9,10 @@ import '../certificates/certificates_screen.dart';
 import '../profile/profile_screen.dart';
 import 'activity_create_screen.dart';
 import 'activity_detail_screen.dart';
+import 'all_activities_screen.dart';
 
 const List<String> _activityCategories = <String>[
+  'All',
   'Community',
   'Education',
   'Healthcare',
@@ -125,27 +128,29 @@ class EngageBottomNav extends StatelessWidget {
       ),
     ];
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(28),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surface,
-            borderRadius: BorderRadius.circular(28),
-            boxShadow: <BoxShadow>[
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 24,
-                offset: const Offset(0, 12),
-              ),
-            ],
-          ),
-          child: Row(
-            children: List<Widget>.generate(
-              items.length,
-              (int index) => _NavButton(
+    return ClipRRect(
+      borderRadius: const BorderRadius.only(
+        topLeft: Radius.circular(16),
+        topRight: Radius.circular(16),
+      ),
+      child: Container(
+        height: 80,
+        decoration: BoxDecoration(
+          color: theme.primaryColorLight,
+          boxShadow: <BoxShadow>[
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: List<Widget>.generate(
+            items.length,
+            (int index) => Expanded(
+              child: _NavButton(
                 config: items[index],
                 isActive: currentIndex == index,
                 onTap: () => onSelected(index),
@@ -184,34 +189,15 @@ class _NavButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 250),
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          decoration: BoxDecoration(
-            color: isActive ? theme.colorScheme.primary.withOpacity(0.12) : Colors.transparent,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              Icon(
-                isActive ? config.activeIcon : config.icon,
-                color: isActive ? theme.colorScheme.primary : const Color(0xFF9A9A9A),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                config.label,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: isActive ? theme.colorScheme.primary : const Color(0xFF9A9A9A),
-                ),
-              ),
-            ],
-          ),
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Icon(
+          isActive ? config.activeIcon : config.icon,
+          color: isActive ? theme.colorScheme.primary : const Color(0xFF9698A9),
+          size: 24,
         ),
       ),
     );
@@ -219,7 +205,7 @@ class _NavButton extends StatelessWidget {
 }
 
 /// Discover tab with hero header and curated lists inspired by the reference design.
-class ActivitiesHomeView extends StatelessWidget {
+class ActivitiesHomeView extends StatefulWidget {
   final AuthService authService;
   final FirestoreService firestoreService;
 
@@ -230,13 +216,69 @@ class ActivitiesHomeView extends StatelessWidget {
   });
 
   @override
+  State<ActivitiesHomeView> createState() => _ActivitiesHomeViewState();
+}
+
+class _ActivitiesHomeViewState extends State<ActivitiesHomeView> {
+  String _searchQuery = '';
+  String _selectedCategory = 'All';
+  Timer? _debounce;
+  final TextEditingController _searchController = TextEditingController();
+  Stream<List<Map<String, dynamic>>>? _activitiesStream;
+  Stream<DocumentSnapshot<Map<String, dynamic>>>? _userStream;
+
+  @override
+  void initState() {
+    super.initState();
+    _activitiesStream = widget.firestoreService.getActivities();
+    _initializeUserStream();
+  }
+
+  @override
+  void didUpdateWidget(ActivitiesHomeView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.authService.user?.uid != oldWidget.authService.user?.uid) {
+      _initializeUserStream();
+    }
+  }
+
+  void _initializeUserStream() {
+    final String? userId = widget.authService.user?.uid;
+    if (userId != null) {
+      _userStream = FirebaseFirestore.instance.collection('users').doc(userId).snapshots();
+    } else {
+      _userStream = null;
+    }
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _onSearchChanged(String query) {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      setState(() {
+        _searchQuery = query;
+      });
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final String? userId = authService.user?.uid;
+    // Ensure stream is initialized (handles hot reload case)
+    _activitiesStream ??= widget.firestoreService.getActivities();
+    if (_userStream == null && widget.authService.user?.uid != null) {
+      _initializeUserStream();
+    }
+
+    final String? userId = widget.authService.user?.uid;
     return SafeArea(
       child: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-        stream: userId == null
-            ? null
-            : FirebaseFirestore.instance.collection('users').doc(userId).snapshots(),
+        stream: _userStream,
         builder: (BuildContext context,
             AsyncSnapshot<DocumentSnapshot<Map<String, dynamic>>> userSnapshot) {
           final Map<String, dynamic>? userData = userSnapshot.data?.data();
@@ -247,7 +289,7 @@ class ActivitiesHomeView extends StatelessWidget {
           );
 
           return StreamBuilder<List<Map<String, dynamic>>>(
-            stream: firestoreService.getActivities(),
+            stream: _activitiesStream,
             builder: (BuildContext context,
                 AsyncSnapshot<List<Map<String, dynamic>>> snapshot) {
               if (snapshot.hasError) {
@@ -256,11 +298,27 @@ class ActivitiesHomeView extends StatelessWidget {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
               }
-              final List<Map<String, dynamic>> activities = snapshot.data ?? <Map<String, dynamic>>[];
-              final List<Map<String, dynamic>> popularActivities =
-                  activities.take(5).toList();
-              final List<Map<String, dynamic>> monthActivities =
-                  activities.length > 5 ? activities.skip(5).toList() : activities;
+
+              List<Map<String, dynamic>> activities = snapshot.data ?? <Map<String, dynamic>>[];
+
+              // Sort by popularity (participantsCount)
+              final List<Map<String, dynamic>> sortedByPopularity = List.from(activities);
+              sortedByPopularity.sort((a, b) {
+                final int countA = (a['participantsCount'] as int?) ?? 0;
+                final int countB = (b['participantsCount'] as int?) ?? 0;
+                return countB.compareTo(countA); // Descending
+              });
+              final List<Map<String, dynamic>> popularActivities = sortedByPopularity.take(5).toList();
+
+              // Filter for "This Month" (or just the main list)
+              List<Map<String, dynamic>> filteredActivities = activities.where((activity) {
+                final String title = (activity['title'] as String? ?? '').toLowerCase();
+                final String category = (activity['category'] as String? ?? 'Other');
+                final bool matchesSearch = title.contains(_searchQuery.toLowerCase());
+                final bool matchesCategory = _selectedCategory == 'All' ||
+                    category.toLowerCase() == _selectedCategory.toLowerCase();
+                return matchesSearch && matchesCategory;
+              }).toList();
 
               return CustomScrollView(
                 physics: const BouncingScrollPhysics(),
@@ -279,35 +337,38 @@ class ActivitiesHomeView extends StatelessWidget {
                           const SizedBox(height: 18),
                           _buildCategories(),
                           const SizedBox(height: 28),
-                          _buildSectionHeader(context, 'Popular Activities'),
+                          if (_searchQuery.isEmpty && _selectedCategory == 'All') ...[
+                            _buildSectionHeader(context, 'Popular Activities'),
+                          ],
                         ],
                       ),
                     ),
                   ),
-                  SliverToBoxAdapter(
-                    child: SizedBox(
-                      height: 300,
-                      child: ListView.builder(
-                        padding: const EdgeInsets.only(left: 24, right: 12),
-                        scrollDirection: Axis.horizontal,
-                        physics: const BouncingScrollPhysics(),
-                        itemCount: popularActivities.length,
-                        itemBuilder: (BuildContext context, int index) {
-                          return Padding(
-                            padding: const EdgeInsets.only(right: 16),
-                            child: PopularActivityCard(activity: popularActivities[index]),
-                          );
-                        },
+                  if (_searchQuery.isEmpty && _selectedCategory == 'All')
+                    SliverToBoxAdapter(
+                      child: SizedBox(
+                        height: 300,
+                        child: ListView.builder(
+                          padding: const EdgeInsets.only(left: 24, right: 12),
+                          scrollDirection: Axis.horizontal,
+                          physics: const BouncingScrollPhysics(),
+                          itemCount: popularActivities.length,
+                          itemBuilder: (BuildContext context, int index) {
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 16),
+                              child: PopularActivityCard(activity: popularActivities[index]),
+                            );
+                          },
+                        ),
                       ),
                     ),
-                  ),
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
-                      child: _buildSectionHeader(context, 'This Month'),
+                      child: _buildSectionHeader(context, _searchQuery.isNotEmpty || _selectedCategory != 'All' ? 'Search Results' : 'This Month'),
                     ),
                   ),
-                  if (monthActivities.isEmpty)
+                  if (filteredActivities.isEmpty)
                     SliverFillRemaining(
                       hasScrollBody: false,
                       child: _buildEmptyState(),
@@ -318,13 +379,13 @@ class ActivitiesHomeView extends StatelessWidget {
                       sliver: SliverList(
                         delegate: SliverChildBuilderDelegate(
                           (BuildContext context, int index) {
-                            final Map<String, dynamic> activity = monthActivities[index];
+                            final Map<String, dynamic> activity = filteredActivities[index];
                             return Padding(
                               padding: const EdgeInsets.only(bottom: 18),
                               child: MonthlyActivityCard(activity: activity),
                             );
                           },
-                          childCount: monthActivities.length,
+                          childCount: filteredActivities.length,
                         ),
                       ),
                     ),
@@ -365,14 +426,52 @@ class ActivitiesHomeView extends StatelessWidget {
             ],
           ),
         ),
-        Container(
-          height: 52,
-          width: 52,
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primary.withOpacity(0.12),
-            shape: BoxShape.circle,
+        PopupMenuButton<String>(
+          offset: const Offset(0, 60),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: Container(
+            height: 52,
+            width: 52,
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primary.withOpacity(0.12),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.favorite, color: Color(0xFFFF6B9D)),
           ),
-          child: const Icon(Icons.favorite, color: Color(0xFFFF6B9D)),
+          onSelected: (String value) {
+            if (value == 'profile') {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (BuildContext context) => const ProfileScreen(isEmbedded: false),
+                ),
+              );
+            } else if (value == 'logout') {
+              _handleLogout(context);
+            }
+          },
+          itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+            const PopupMenuItem<String>(
+              value: 'profile',
+              child: Row(
+                children: <Widget>[
+                  Icon(Icons.person_outline_rounded, color: Color(0xFFFF6B9D)),
+                  SizedBox(width: 12),
+                  Text('My Profile'),
+                ],
+              ),
+            ),
+            const PopupMenuItem<String>(
+              value: 'logout',
+              child: Row(
+                children: <Widget>[
+                  Icon(Icons.logout_rounded, color: Color(0xFFFF6B9D)),
+                  SizedBox(width: 12),
+                  Text('Logout'),
+                ],
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -443,19 +542,31 @@ class ActivitiesHomeView extends StatelessWidget {
         ],
       ),
       child: TextField(
-      decoration: InputDecoration(
+        controller: _searchController,
+        onChanged: _onSearchChanged,
+        decoration: InputDecoration(
           contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           hintText: 'Search activities...',
           border: InputBorder.none,
-        prefixIcon: const Icon(Icons.search),
-        suffixIcon: Container(
-          margin: const EdgeInsets.only(right: 12),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primary.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(18),
-            ),
-            child: const Icon(Icons.tune_rounded, color: Color(0xFFFF6B9D)),
-          ),
+          prefixIcon: const Icon(Icons.search),
+          suffixIcon: _searchQuery.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.clear, color: Color(0xFFFF6B9D)),
+                  onPressed: () {
+                    setState(() {
+                      _searchQuery = '';
+                      _searchController.clear();
+                    });
+                  },
+                )
+              : Container(
+                  margin: const EdgeInsets.only(right: 12),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: const Icon(Icons.tune_rounded, color: Color(0xFFFF6B9D)),
+                ),
         ),
       ),
     );
@@ -470,17 +581,21 @@ class ActivitiesHomeView extends StatelessWidget {
         padding: const EdgeInsets.only(right: 24),
         itemBuilder: (BuildContext context, int index) {
           final String label = _activityCategories[index];
-          return Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFEEF2),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              label,
-              style: const TextStyle(
-                fontWeight: FontWeight.w600,
-                color: Color(0xFFFF6B9D),
+          final bool isSelected = _selectedCategory == label;
+          return GestureDetector(
+            onTap: () => setState(() => _selectedCategory = label),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(
+                color: isSelected ? const Color(0xFFFF6B9D) : const Color(0xFFFFEEF2),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: isSelected ? Colors.white : const Color(0xFFFF6B9D),
+                ),
               ),
             ),
           );
@@ -499,9 +614,17 @@ class ActivitiesHomeView extends StatelessWidget {
           title,
           style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
         ),
-        const Text(
-          'View all',
-          style: TextStyle(color: Color(0xFF9A9A9A)),
+        GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const AllActivitiesScreen()),
+            );
+          },
+          child: const Text(
+            'View all',
+            style: TextStyle(color: Color(0xFF9A9A9A)),
+          ),
         ),
       ],
     );
@@ -514,17 +637,40 @@ class ActivitiesHomeView extends StatelessWidget {
         Icon(Icons.sentiment_dissatisfied, size: 72, color: Color(0xFFC8C8C8)),
         SizedBox(height: 16),
         Text(
-          'No activities yet',
+          'No activities found',
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
         ),
         SizedBox(height: 8),
         Text(
-          'Please check back later or create one if you are an organizer.',
+          'Try adjusting your search or filters.',
           textAlign: TextAlign.center,
           style: TextStyle(color: Color(0xFF8E8E8E)),
         ),
       ],
     );
+  }
+
+  Future<void> _handleLogout(BuildContext context) async {
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) => AlertDialog(
+        title: const Text('Logout'),
+        content: const Text('Are you sure you want to logout?'),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Logout'),
+          ),
+        ],
+      ),
+    );
+    if (confirm == true) {
+      await widget.authService.signOut();
+    }
   }
 }
 

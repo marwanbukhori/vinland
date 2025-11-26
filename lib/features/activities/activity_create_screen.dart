@@ -73,15 +73,43 @@ class _ActivityCreateScreenState extends State<ActivityCreateScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('New Activity'),
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        leading: Container(
+          margin: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Color(0xFFFF6B9D)),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ),
+        title: const Text(
+          'Create Activity',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF1F1F1F),
+          ),
+        ),
       ),
       body: SafeArea(
         child: Form(
           key: formKey,
           child: SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+            padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
@@ -92,7 +120,7 @@ class _ActivityCreateScreenState extends State<ActivityCreateScreen> {
                 const SizedBox(height: 6),
                 const Text(
                   'Tell volunteers what makes this activity special.',
-                  style: TextStyle(color: Color(0xFF8E8E8E)),
+                  style: TextStyle(color: Color(0xFF9698A9)),
                 ),
                 const SizedBox(height: 24),
                 _buildPosterPicker(),
@@ -145,33 +173,78 @@ class _ActivityCreateScreenState extends State<ActivityCreateScreen> {
       onTap: _pickImage,
       child: Container(
         width: double.infinity,
-        padding: selectedImage == null ? const EdgeInsets.all(32) : EdgeInsets.zero,
+        padding: selectedImage == null ? const EdgeInsets.all(40) : EdgeInsets.zero,
         decoration: BoxDecoration(
-          color: const Color(0xFFFFF0F4),
-          borderRadius: BorderRadius.circular(28),
-          border: Border.all(color: const Color(0xFFFFC7DA)),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: const Color(0xFFFFEEF2), width: 2),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 16,
+              offset: const Offset(0, 8),
+            ),
+          ],
         ),
         child: selectedImage == null
             ? Column(
-                children: const <Widget>[
-                  Icon(Icons.add_photo_alternate_rounded, size: 48, color: Color(0xFFFF7AA2)),
-                  SizedBox(height: 12),
-                  Text(
-                    'Upload cover poster',
-                    style: TextStyle(fontWeight: FontWeight.w600),
+                children: <Widget>[
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFEEF2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.add_photo_alternate_rounded, size: 40, color: Color(0xFFFF6B9D)),
                   ),
-                  SizedBox(height: 4),
-                  Text(
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Upload cover poster',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                      color: Color(0xFF1F1F1F),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
                     'Min 1200x1200px, JPG or PNG',
-                    style: TextStyle(color: Color(0xFF8E8E8E)),
+                    style: TextStyle(
+                      color: Color(0xFF9698A9),
+                      fontSize: 13,
+                    ),
                   ),
                 ],
               )
             : ClipRRect(
-                borderRadius: BorderRadius.circular(28),
+                borderRadius: BorderRadius.circular(24),
                 child: AspectRatio(
                   aspectRatio: 16 / 9,
-                  child: Image.file(selectedImage!, fit: BoxFit.cover),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Image.file(selectedImage!, fit: BoxFit.cover),
+                      Positioned(
+                        top: 12,
+                        right: 12,
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.1),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: const Icon(Icons.edit, color: Color(0xFFFF6B9D), size: 20),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
       ),

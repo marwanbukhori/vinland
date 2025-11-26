@@ -37,10 +37,11 @@ class FirestoreService {
       'joinedActivities': FieldValue.arrayUnion([activityId])
     });
 
-    // Add to activity's participants (optional, if we track it there too)
-    // await _db.collection('activities').doc(activityId).update({
-    //   'participants': FieldValue.arrayUnion([userId])
-    // });
+    // Add to activity's participants and increment count
+    await _db.collection('activities').doc(activityId).update({
+      'participants': FieldValue.arrayUnion([userId]),
+      'participantsCount': FieldValue.increment(1),
+    });
 
     // Create a registration record
     await _db.collection('registrations').add({

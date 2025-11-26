@@ -113,7 +113,7 @@ class ProfileView extends StatelessWidget {
                     icon: const Icon(Icons.logout_rounded),
                     label: const Text('Logout'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1F1F1F),
+                      backgroundColor: const Color(0xFFFF6B9D),
                     ),
                   ),
                 ),

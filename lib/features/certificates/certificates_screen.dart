@@ -78,14 +78,20 @@ class CertificatesView extends StatelessWidget {
                     children: <Widget>[
                       Text(
                         'Certificates',
-                        style: Theme.of(context).textTheme.headlineMedium,
+                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                       const SizedBox(height: 6),
                       const Text(
                         'Celebrate your impact and share your achievements.',
-                        style: TextStyle(color: Color(0xFF7B7B7B)),
+                        style: TextStyle(
+                          color: Color(0xFF9698A9),
+                          fontSize: 14,
+                        ),
                       ),
-                      const SizedBox(height: 18),
+                      const SizedBox(height: 20),
                       _buildSummaryCard(context, joinedActivities.length),
                       const SizedBox(height: 24),
                     ],
@@ -128,18 +134,29 @@ class CertificatesView extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primary,
-        borderRadius: BorderRadius.circular(32),
+        gradient: const LinearGradient(
+          colors: [Color(0xFFFF6B9D), Color(0xFFFF9AC4)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFFF6B9D).withOpacity(0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
       child: Row(
         children: <Widget>[
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withOpacity(0.25),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.workspace_premium, color: Colors.white, size: 36),
+            child: const Icon(Icons.workspace_premium, color: Colors.white, size: 32),
           ),
           const SizedBox(width: 18),
           Expanded(
@@ -148,20 +165,32 @@ class CertificatesView extends StatelessWidget {
               children: <Widget>[
                 const Text(
                   'Certificates Earned',
-                  style: TextStyle(color: Colors.white70),
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 13,
+                  ),
                 ),
+                const SizedBox(height: 4),
                 Text(
                   '$totalCertificates',
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 32,
+                    fontSize: 36,
                     fontWeight: FontWeight.bold,
+                    height: 1.0,
                   ),
                 ),
               ],
             ),
           ),
-          const Icon(Icons.ios_share, color: Colors.white),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.share, color: Colors.white, size: 20),
+          ),
         ],
       ),
     );
@@ -217,12 +246,12 @@ class _CertificateCard extends StatelessWidget {
         return Container(
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(28),
+            borderRadius: BorderRadius.circular(24),
             boxShadow: <BoxShadow>[
               BoxShadow(
-                color: Colors.black.withOpacity(0.04),
-                blurRadius: 18,
-                offset: const Offset(0, 12),
+                color: Colors.black.withOpacity(0.06),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
               ),
             ],
           ),
@@ -230,9 +259,9 @@ class _CertificateCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
                 child: AspectRatio(
-                  aspectRatio: 16 / 8,
+                  aspectRatio: 16 / 9,
                   child: posterUrl.isEmpty
                       ? Container(
                           color: const Color(0xFFFFEEF2),
@@ -257,35 +286,60 @@ class _CertificateCard extends StatelessWidget {
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
+                padding: const EdgeInsets.all(20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Text(
                       title,
-                      style: Theme.of(context).textTheme.titleMedium,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1F1F1F),
+                      ),
                     ),
-                    const SizedBox(height: 6),
-                    const Row(
-                      children: <Widget>[
-                        Icon(Icons.verified_rounded, color: Color(0xFF27AE60), size: 20),
-                        SizedBox(width: 6),
-                        Text(
-                          'Completed',
-                          style: TextStyle(
-                            color: Color(0xFF27AE60),
-                            fontWeight: FontWeight.w600,
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE8F5E9),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: <Widget>[
+                          Icon(Icons.verified_rounded, color: Color(0xFF27AE60), size: 16),
+                          SizedBox(width: 6),
+                          Text(
+                            'Completed',
+                            style: TextStyle(
+                              color: Color(0xFF27AE60),
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 20),
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton.icon(
                         onPressed: () => _handleGenerate(context, title),
-                        icon: const Icon(Icons.download),
-                        label: const Text('Generate Certificate'),
+                        icon: const Icon(Icons.download_rounded, size: 20),
+                        label: const Text(
+                          'Generate Certificate',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
                       ),
                     ),
                   ],
