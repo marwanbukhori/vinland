@@ -130,60 +130,67 @@ class ProfileView extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: <Color>[Color(0xFFFF9AC4), Color(0xFFFF3D71)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(36),
         boxShadow: <BoxShadow>[
           BoxShadow(
-            color: const Color(0xFFFF3D71).withOpacity(0.35),
+            color: Colors.black.withOpacity(0.08),
             blurRadius: 30,
-            offset: const Offset(0, 20),
+            offset: const Offset(0, 18),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          CircleAvatar(
-            radius: 34,
-            backgroundColor: Colors.white.withOpacity(0.2),
-            child: Text(
-              name.isEmpty ? '?' : name[0].toUpperCase(),
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 26,
-                fontWeight: FontWeight.bold,
+          Row(
+            children: <Widget>[
+              CircleAvatar(
+                radius: 36,
+                backgroundColor: const Color(0xFFFFEEF2),
+                child: Text(
+                  name.isEmpty ? '?' : name[0].toUpperCase(),
+                  style: const TextStyle(
+                    color: Color(0xFFFF6B9D),
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
-            ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      name,
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1F1F1F),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      email,
+                      style: const TextStyle(color: Color(0xFF7C7C7C)),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 18),
-          Text(
-            name,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 26,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            email,
-            style: const TextStyle(color: Colors.white70),
-          ),
-          const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.18),
+              color: const Color(0xFFFFEEF2),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
               role.toUpperCase(),
               style: const TextStyle(
-                color: Colors.white,
+                color: Color(0xFFFF6B9D),
                 fontWeight: FontWeight.w600,
                 letterSpacing: 1.1,
               ),
@@ -202,7 +209,7 @@ class ProfileView extends StatelessWidget {
             title: 'Points',
             value: points.toString(),
             icon: Icons.stars_rounded,
-            color: const Color(0xFFFFC857),
+            color: const Color(0xFFFF6B9D),
           ),
         ),
         const SizedBox(width: 16),
@@ -211,7 +218,7 @@ class ProfileView extends StatelessWidget {
             title: 'Activities',
             value: activities.toString(),
             icon: Icons.volunteer_activism,
-            color: const Color(0xFF6DD3CE),
+            color: const Color(0xFF8A8DFF),
           ),
         ),
       ],
@@ -307,7 +314,7 @@ class _StatCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(28),
         boxShadow: <BoxShadow>[
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withOpacity(0.04),
             blurRadius: 18,
             offset: const Offset(0, 12),
           ),
@@ -318,7 +325,7 @@ class _StatCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.18),
+              color: color.withOpacity(0.15),
               borderRadius: BorderRadius.circular(18),
             ),
             child: Icon(icon, color: color),
@@ -381,14 +388,25 @@ class _JourneyTile extends StatelessWidget {
             ],
           ),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFEEF2),
-                  borderRadius: BorderRadius.circular(18),
-                ),
-                child: const Icon(Icons.event_available_rounded, color: Color(0xFFFF3D71)),
+              Column(
+                children: <Widget>[
+                  Container(
+                    width: 18,
+                    height: 18,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFFF6B9D),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Container(
+                    width: 2,
+                    height: 48,
+                    color: const Color(0xFFFFEEF2),
+                  ),
+                ],
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -403,14 +421,35 @@ class _JourneyTile extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      location,
-                      style: const TextStyle(color: Color(0xFF8E8E8E)),
+                    Row(
+                      children: <Widget>[
+                        const Icon(Icons.place_outlined, size: 18, color: Color(0xFFFF6B9D)),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            location,
+                            style: const TextStyle(color: Color(0xFF8E8E8E)),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
-              const Icon(Icons.check_circle, color: Color(0xFF27AE60)),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8F8F0),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Text(
+                  'Completed',
+                  style: TextStyle(
+                    color: Color(0xFF1BA975),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
             ],
           ),
         );
