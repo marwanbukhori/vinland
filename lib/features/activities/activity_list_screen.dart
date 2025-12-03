@@ -1,26 +1,19 @@
-import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 
 import '../../services/auth_service.dart';
 import '../../services/firestore_service.dart';
-import '../certificates/certificates_screen.dart';
 import '../profile/profile_screen.dart';
-import 'activity_create_screen.dart';
+import '../certificates/certificates_screen.dart';
+import '../rewards/rewards_screen.dart';
 import 'activity_detail_screen.dart';
+import 'activity_create_screen.dart';
 import 'all_activities_screen.dart';
+import 'my_activities_screen.dart';
+import 'admin_dashboard.dart';
 
-const List<String> _activityCategories = <String>[
-  'All',
-  'Community',
-  'Education',
-  'Healthcare',
-  'Environment',
-  'Fundraising',
-];
-
-/// Main shell for the authenticated user experience with custom navigation.
 class ActivityListScreen extends StatefulWidget {
   const ActivityListScreen({super.key});
 
@@ -30,799 +23,174 @@ class ActivityListScreen extends StatefulWidget {
 
 class _ActivityListScreenState extends State<ActivityListScreen> {
   int _currentIndex = 0;
-  final FirestoreService firestoreService = FirestoreService();
 
   @override
   Widget build(BuildContext context) {
     final AuthService authService = Provider.of<AuthService>(context);
-    final List<Widget> screens = <Widget>[
-      ActivitiesHomeView(
-        authService: authService,
-        firestoreService: firestoreService,
-      ),
-      const CertificatesScreen(isEmbedded: true),
-      const ProfileScreen(isEmbedded: true),
-    ];
-
-    return Scaffold(
-      extendBody: true,
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: IndexedStack(
-        index: _currentIndex,
-        children: screens,
-      ),
-      bottomNavigationBar: EngageBottomNav(
-        currentIndex: _currentIndex,
-        onSelected: (int index) => setState(() => _currentIndex = index),
-      ),
-      floatingActionButton: _buildFloatingActionButton(authService),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-    );
-  }
-
-  Widget? _buildFloatingActionButton(AuthService authService) {
-    if (_currentIndex != 0) {
-      return null;
-    }
     final String? userId = authService.user?.uid;
-    if (userId == null) {
-      return null;
-    }
+
     return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-      stream: FirebaseFirestore.instance.collection('users').doc(userId).snapshots(),
-      builder: (BuildContext context, AsyncSnapshot<DocumentSnapshot<Map<String, dynamic>>> snapshot) {
-        if (!snapshot.hasData) {
-          return const SizedBox.shrink();
-        }
-        final Map<String, dynamic>? data = snapshot.data?.data();
-        final String role = (data?['role'] as String?) ?? 'volunteer';
-        if (role != 'organization') {
-          return const SizedBox.shrink();
-        }
-        return FloatingActionButton.extended(
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute<void>(
-                builder: (BuildContext context) => const ActivityCreateScreen(),
-              ),
-            );
-          },
-          icon: const Icon(Icons.add),
-          label: const Text('Create'),
+      stream: userId != null
+          ? FirebaseFirestore.instance.collection('users').doc(userId).snapshots()
+          : null,
+      builder: (context, snapshot) {
+        final String role = snapshot.data?.data()?['role'] ?? 'volunteer';
+        final bool isOrganization = role == 'organization';
+
+        final List<Widget> screens = [
+          const ActivitiesHomeView(),
+          if (isOrganization) const AdminDashboard() else MyActivitiesView(userId: userId),
+          const RewardsScreen(),
+          const CertificatesScreen(),
+          const ProfileScreen(),
+        ];
+
+        return Scaffold(
+          body: IndexedStack(
+            index: _currentIndex,
+            children: screens,
+          ),
+          bottomNavigationBar: _buildBottomNav(isOrganization),
+          floatingActionButton: isOrganization && _currentIndex == 1 // Show on Dashboard tab
+              ? FloatingActionButton(
+                  heroTag: 'home_fab',
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const ActivityCreateScreen()),
+                    );
+                  },
+                  backgroundColor: const Color(0xFFFF6B9D),
+                  child: const Icon(Icons.add),
+                )
+              : null,
         );
       },
     );
   }
-}
 
-/// Rounded navigation inspired by the reference event application.
-class EngageBottomNav extends StatelessWidget {
-  final int currentIndex;
-  final ValueChanged<int> onSelected;
-
-  const EngageBottomNav({
-    super.key,
-    required this.currentIndex,
-    required this.onSelected,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    final List<_NavItemConfig> items = <_NavItemConfig>[
-      const _NavItemConfig(
-        icon: Icons.auto_awesome_mosaic_outlined,
-        activeIcon: Icons.auto_awesome_mosaic,
-        label: 'Discover',
+  Widget _buildBottomNav(bool isOrganization) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 20,
+            offset: const Offset(0, -5),
+          ),
+        ],
       ),
-      const _NavItemConfig(
-        icon: Icons.workspace_premium_outlined,
-        activeIcon: Icons.workspace_premium,
-        label: 'Certificates',
-      ),
-      const _NavItemConfig(
-        icon: Icons.person_outline_rounded,
-        activeIcon: Icons.person,
-        label: 'Profile',
-      ),
-    ];
-
-    return ClipRRect(
-      borderRadius: const BorderRadius.only(
-        topLeft: Radius.circular(16),
-        topRight: Radius.circular(16),
-      ),
-      child: Container(
-        height: 80,
-        decoration: BoxDecoration(
-          color: theme.primaryColorLight,
-          boxShadow: <BoxShadow>[
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, -2),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: List<Widget>.generate(
-            items.length,
-            (int index) => Expanded(
-              child: _NavButton(
-                config: items[index],
-                isActive: currentIndex == index,
-                onTap: () => onSelected(index),
-              ),
-            ),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildNavItem(0, Icons.explore_rounded, 'Explore'),
+              _buildNavItem(1, isOrganization ? Icons.dashboard_rounded : Icons.event_note_rounded, 
+                isOrganization ? 'Dashboard' : 'My Events'),
+              _buildNavItem(2, Icons.card_giftcard_rounded, 'Rewards'), // Changed icon
+              _buildNavItem(3, Icons.workspace_premium_rounded, 'Certificates'),
+              _buildNavItem(4, Icons.person_rounded, 'Profile'),
+            ],
           ),
         ),
       ),
     );
   }
-}
 
-class _NavItemConfig {
-  final IconData icon;
-  final IconData activeIcon;
-  final String label;
-
-  const _NavItemConfig({
-    required this.icon,
-    required this.activeIcon,
-    required this.label,
-  });
-}
-
-class _NavButton extends StatelessWidget {
-  final _NavItemConfig config;
-  final bool isActive;
-  final VoidCallback onTap;
-
-  const _NavButton({
-    required this.config,
-    required this.isActive,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
+  Widget _buildNavItem(int index, IconData icon, String label) {
+    final bool isSelected = _currentIndex == index;
     return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        child: Icon(
-          isActive ? config.activeIcon : config.icon,
-          color: isActive ? theme.colorScheme.primary : const Color(0xFF9698A9),
-          size: 24,
+      onTap: () => setState(() => _currentIndex = index),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFFFFEEF2) : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              color: isSelected ? const Color(0xFFFF6B9D) : Colors.grey[400],
+              size: 24,
+            ),
+            if (isSelected) ...[
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: const TextStyle(
+                  color: Color(0xFFFF6B9D),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 10,
+                ),
+              ),
+            ]
+          ],
         ),
       ),
     );
   }
 }
 
-/// Discover tab with hero header and curated lists inspired by the reference design.
 class ActivitiesHomeView extends StatefulWidget {
-  final AuthService authService;
-  final FirestoreService firestoreService;
-
-  const ActivitiesHomeView({
-    super.key,
-    required this.authService,
-    required this.firestoreService,
-  });
+  const ActivitiesHomeView({super.key});
 
   @override
   State<ActivitiesHomeView> createState() => _ActivitiesHomeViewState();
 }
 
 class _ActivitiesHomeViewState extends State<ActivitiesHomeView> {
+  final FirestoreService _firestoreService = FirestoreService();
   String _searchQuery = '';
   String _selectedCategory = 'All';
-  Timer? _debounce;
-  final TextEditingController _searchController = TextEditingController();
-  Stream<List<Map<String, dynamic>>>? _activitiesStream;
-  Stream<DocumentSnapshot<Map<String, dynamic>>>? _userStream;
-
-  @override
-  void initState() {
-    super.initState();
-    _activitiesStream = widget.firestoreService.getActivities();
-    _initializeUserStream();
-  }
-
-  @override
-  void didUpdateWidget(ActivitiesHomeView oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.authService.user?.uid != oldWidget.authService.user?.uid) {
-      _initializeUserStream();
-    }
-  }
-
-  void _initializeUserStream() {
-    final String? userId = widget.authService.user?.uid;
-    if (userId != null) {
-      _userStream = FirebaseFirestore.instance.collection('users').doc(userId).snapshots();
-    } else {
-      _userStream = null;
-    }
-  }
-
-  @override
-  void dispose() {
-    _debounce?.cancel();
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  void _onSearchChanged(String query) {
-    if (_debounce?.isActive ?? false) _debounce!.cancel();
-    _debounce = Timer(const Duration(milliseconds: 500), () {
-      setState(() {
-        _searchQuery = query;
-      });
-    });
-  }
+  
+  final List<String> _categories = ['All', 'Community', 'Education', 'Healthcare', 'Environment', 'Other'];
 
   @override
   Widget build(BuildContext context) {
-    // Ensure stream is initialized (handles hot reload case)
-    _activitiesStream ??= widget.firestoreService.getActivities();
-    if (_userStream == null && widget.authService.user?.uid != null) {
-      _initializeUserStream();
-    }
+    final AuthService authService = Provider.of<AuthService>(context);
+    final String? userId = authService.user?.uid;
 
-    final String? userId = widget.authService.user?.uid;
-    return SafeArea(
-      child: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-        stream: _userStream,
-        builder: (BuildContext context,
-            AsyncSnapshot<DocumentSnapshot<Map<String, dynamic>>> userSnapshot) {
-          final Map<String, dynamic>? userData = userSnapshot.data?.data();
-          final String name = (userData?['name'] as String?) ?? 'Volunteer';
-          final String role = (userData?['role'] as String?) ?? 'volunteer';
-          final List<String> joinedActivities = List<String>.from(
-            userData?['joinedActivities'] ?? <String>[],
-          );
-
-          return StreamBuilder<List<Map<String, dynamic>>>(
-            stream: _activitiesStream,
-            builder: (BuildContext context,
-                AsyncSnapshot<List<Map<String, dynamic>>> snapshot) {
-              if (snapshot.hasError) {
-                return const Center(child: Text('Something went wrong. Please try again.'));
-              }
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-
-              List<Map<String, dynamic>> activities = snapshot.data ?? <Map<String, dynamic>>[];
-
-              // Sort by popularity (participantsCount)
-              final List<Map<String, dynamic>> sortedByPopularity = List.from(activities);
-              sortedByPopularity.sort((a, b) {
-                final int countA = (a['participantsCount'] as int?) ?? 0;
-                final int countB = (b['participantsCount'] as int?) ?? 0;
-                return countB.compareTo(countA); // Descending
-              });
-              final List<Map<String, dynamic>> popularActivities = sortedByPopularity.take(5).toList();
-
-              // Filter for "This Month" (or just the main list)
-              List<Map<String, dynamic>> filteredActivities = activities.where((activity) {
-                final String title = (activity['title'] as String? ?? '').toLowerCase();
-                final String category = (activity['category'] as String? ?? 'Other');
-                final bool matchesSearch = title.contains(_searchQuery.toLowerCase());
-                final bool matchesCategory = _selectedCategory == 'All' ||
-                    category.toLowerCase() == _selectedCategory.toLowerCase();
-                return matchesSearch && matchesCategory;
-              }).toList();
-
-              return CustomScrollView(
-                physics: const BouncingScrollPhysics(),
-                slivers: <Widget>[
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          _buildHeader(context, name),
-                          const SizedBox(height: 18),
-                          _buildHighlightCard(context, joinedActivities.length, role),
-                          const SizedBox(height: 24),
-                          _buildSearchField(context),
-                          const SizedBox(height: 18),
-                          _buildCategories(),
-                          const SizedBox(height: 28),
-                          if (_searchQuery.isEmpty && _selectedCategory == 'All') ...[
-                            _buildSectionHeader(context, 'Popular Activities'),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ),
-                  if (_searchQuery.isEmpty && _selectedCategory == 'All')
-                    SliverToBoxAdapter(
-                      child: SizedBox(
-                        height: 300,
-                        child: ListView.builder(
-                          padding: const EdgeInsets.only(left: 24, right: 12),
-                          scrollDirection: Axis.horizontal,
-                          physics: const BouncingScrollPhysics(),
-                          itemCount: popularActivities.length,
-                          itemBuilder: (BuildContext context, int index) {
-                            return Padding(
-                              padding: const EdgeInsets.only(right: 16),
-                              child: PopularActivityCard(activity: popularActivities[index]),
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
-                      child: _buildSectionHeader(context, _searchQuery.isNotEmpty || _selectedCategory != 'All' ? 'Search Results' : 'This Month'),
-                    ),
-                  ),
-                  if (filteredActivities.isEmpty)
-                    SliverFillRemaining(
-                      hasScrollBody: false,
-                      child: _buildEmptyState(),
-                    )
-                  else
-                    SliverPadding(
-                      padding: const EdgeInsets.fromLTRB(24, 0, 24, 120),
-                      sliver: SliverList(
-                        delegate: SliverChildBuilderDelegate(
-                          (BuildContext context, int index) {
-                            final Map<String, dynamic> activity = filteredActivities[index];
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 18),
-                              child: MonthlyActivityCard(activity: activity),
-                            );
-                          },
-                          childCount: filteredActivities.length,
-                        ),
-                      ),
-                    ),
-                ],
-              );
-            },
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildHeader(BuildContext context, String name) {
-    return Row(
-      children: <Widget>[
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Text(
-                'Current Location',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: const Color(0xFF9A9A9A),
-                    ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'Hello, $name 👋',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontSize: 26,
-                    ),
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                'Discover impactful activities around you.',
-                style: TextStyle(color: Color(0xFF8C8C8C)),
-              ),
-            ],
-          ),
-        ),
-        PopupMenuButton<String>(
-          offset: const Offset(0, 60),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          child: Container(
-            height: 52,
-            width: 52,
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primary.withOpacity(0.12),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.favorite, color: Color(0xFFFF6B9D)),
-          ),
-          onSelected: (String value) {
-            if (value == 'profile') {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (BuildContext context) => const ProfileScreen(isEmbedded: false),
-                ),
-              );
-            } else if (value == 'logout') {
-              _handleLogout(context);
-            }
-          },
-          itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-            const PopupMenuItem<String>(
-              value: 'profile',
-              child: Row(
-                children: <Widget>[
-                  Icon(Icons.person_outline_rounded, color: Color(0xFFFF6B9D)),
-                  SizedBox(width: 12),
-                  Text('My Profile'),
-                ],
-              ),
-            ),
-            const PopupMenuItem<String>(
-              value: 'logout',
-              child: Row(
-                children: <Widget>[
-                  Icon(Icons.logout_rounded, color: Color(0xFFFF6B9D)),
-                  SizedBox(width: 12),
-                  Text('Logout'),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildHighlightCard(BuildContext context, int joinedCount, String role) {
-    final bool isOrganizer = role == 'organization';
-    final ThemeData theme = Theme.of(context);
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.primary,
-        borderRadius: BorderRadius.circular(32),
-        boxShadow: <BoxShadow>[
-          BoxShadow(
-            color: theme.colorScheme.primary.withOpacity(0.3),
-            blurRadius: 24,
-            offset: const Offset(0, 16),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text(
-            isOrganizer ? 'Organizer Dashboard' : 'Volunteer Journey',
-            style: const TextStyle(color: Colors.white70),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            isOrganizer
-                ? 'Create events that inspire the community.'
-                : 'You have joined $joinedCount meaningful activities.',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              height: 1.4,
-            ),
-          ),
-          const SizedBox(height: 18),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: const <Widget>[
-              _HighlightBadge(label: 'Impact'),
-              _HighlightBadge(label: 'Community'),
-              _HighlightBadge(label: 'Growth'),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSearchField(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: <BoxShadow>[
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: TextField(
-        controller: _searchController,
-        onChanged: _onSearchChanged,
-        decoration: InputDecoration(
-          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          hintText: 'Search activities...',
-          border: InputBorder.none,
-          prefixIcon: const Icon(Icons.search),
-          suffixIcon: _searchQuery.isNotEmpty
-              ? IconButton(
-                  icon: const Icon(Icons.clear, color: Color(0xFFFF6B9D)),
-                  onPressed: () {
-                    setState(() {
-                      _searchQuery = '';
-                      _searchController.clear();
-                    });
-                  },
-                )
-              : Container(
-                  margin: const EdgeInsets.only(right: 12),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primary.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                  child: const Icon(Icons.tune_rounded, color: Color(0xFFFF6B9D)),
-                ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCategories() {
-    return SizedBox(
-      height: 44,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.only(right: 24),
-        itemBuilder: (BuildContext context, int index) {
-          final String label = _activityCategories[index];
-          final bool isSelected = _selectedCategory == label;
-          return GestureDetector(
-            onTap: () => setState(() => _selectedCategory = label),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              decoration: BoxDecoration(
-                color: isSelected ? const Color(0xFFFF6B9D) : const Color(0xFFFFEEF2),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                label,
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  color: isSelected ? Colors.white : const Color(0xFFFF6B9D),
-                ),
-              ),
-            ),
-          );
-        },
-        separatorBuilder: (_, __) => const SizedBox(width: 12),
-        itemCount: _activityCategories.length,
-      ),
-    );
-  }
-
-  Widget _buildSectionHeader(BuildContext context, String title) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: <Widget>[
-        Text(
-          title,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-        ),
-        GestureDetector(
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const AllActivitiesScreen()),
-            );
-          },
-          child: const Text(
-            'View all',
-            style: TextStyle(color: Color(0xFF9A9A9A)),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildEmptyState() {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: const <Widget>[
-        Icon(Icons.sentiment_dissatisfied, size: 72, color: Color(0xFFC8C8C8)),
-        SizedBox(height: 16),
-        Text(
-          'No activities found',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-        ),
-        SizedBox(height: 8),
-        Text(
-          'Try adjusting your search or filters.',
-          textAlign: TextAlign.center,
-          style: TextStyle(color: Color(0xFF8E8E8E)),
-        ),
-      ],
-    );
-  }
-
-  Future<void> _handleLogout(BuildContext context) async {
-    final bool? confirm = await showDialog<bool>(
-      context: context,
-      builder: (BuildContext context) => AlertDialog(
-        title: const Text('Logout'),
-        content: const Text('Are you sure you want to logout?'),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Logout'),
-          ),
-        ],
-      ),
-    );
-    if (confirm == true) {
-      await widget.authService.signOut();
-    }
-  }
-}
-
-class _HighlightBadge extends StatelessWidget {
-  final String label;
-
-  const _HighlightBadge({required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.2),
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Text(
-        label,
-        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-      ),
-    );
-  }
-}
-
-/// Horizontal card representing highlighted activities.
-class PopularActivityCard extends StatelessWidget {
-  final Map<String, dynamic> activity;
-
-  const PopularActivityCard({super.key, required this.activity});
-
-  @override
-  Widget build(BuildContext context) {
-    final String posterUrl = (activity['posterUrl'] as String?) ?? '';
-    final String title = (activity['title'] as String?) ?? 'Untitled';
-    final String location = (activity['location'] as String?) ?? 'No location';
-    final String category = (activity['category'] as String?) ?? 'Volunteer';
-    final String summary = (activity['description'] as String?) ?? '';
-
-    return GestureDetector(
-      onTap: () => _navigateToDetail(context),
-      child: Container(
-        width: 260,
-        height: 300,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(28),
-          boxShadow: <BoxShadow>[
-            BoxShadow(
-              color: Colors.black.withOpacity(0.08),
-              blurRadius: 24,
-              offset: const Offset(0, 16),
-            ),
-          ],
-        ),
+    return Scaffold(
+      backgroundColor: const Color(0xFFFAFAFA), // Light grey background
+      body: SafeArea(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.max,
-              children: <Widget>[
-                ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-                  child: AspectRatio(
-                aspectRatio: 16 / 10,
-                    child: posterUrl.isEmpty
-                        ? Container(
-                            color: const Color(0xFFFFEEF2),
-                        child: const Icon(Icons.image_not_supported, color: Color(0xFFFFB6C1), size: 48),
-                          )
-                        : Image.network(
-                            posterUrl,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Container(
-                              color: const Color(0xFFFFEEF2),
-                          child: const Icon(Icons.broken_image_outlined, color: Color(0xFFFFB6C1), size: 48),
-                        ),
-                      ),
-              ),
-            ),
+          children: [
+            // Header Section
+            _buildHeader(userId),
+            
+            // Scrollable Content
             Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(12),
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    Row(
-                      children: <Widget>[
-                        Flexible(
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFFFEEF2),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Text(
-                              category.toUpperCase(),
-                              style: const TextStyle(
-                                color: Color(0xFFFF6B9D),
-                                fontSize: 9,
-                                fontWeight: FontWeight.w600,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                  ),
-                        const SizedBox(width: 4),
-                        const Icon(Icons.favorite_border, color: Color(0xFFFF6B9D), size: 16),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Flexible(
-                    child: Text(
-                        title,
-                      style: const TextStyle(
-                          fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                          color: Color(0xFF1F1F1F),
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Flexible(
-                      child: Text(
-                        summary,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Color(0xFF8E8E8E),
-                          fontSize: 11,
-                          height: 1.3,
-                        ),
-                      ),
-                    ),
-                    const Spacer(),
-                    Row(
-                children: <Widget>[
-                        const Icon(Icons.location_pin, size: 14, color: Color(0xFFFF6B9D)),
-                        const SizedBox(width: 4),
-                  Expanded(
-                    child: Text(
-                            location,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF4A4A4A),
-                              fontSize: 11,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
+                  children: [
+                    // Search Bar
+                    _buildSearchBar(),
+                    
+                    // Categories
+                    _buildCategories(),
+                    
+                    // Popular/Featured Section
+                    _buildSectionHeader('Popular Events', () {}),
+                    _buildPopularEvents(),
+                    
+                    // All Activities Section
+                    _buildSectionHeader('Upcoming Events', () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const AllActivitiesScreen()),
+                      );
+                    }),
+                    _buildUpcomingEvents(),
+                    
+                    const SizedBox(height: 80), // Bottom padding
                   ],
                 ),
               ),
@@ -833,94 +201,434 @@ class PopularActivityCard extends StatelessWidget {
     );
   }
 
-  void _navigateToDetail(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute<void>(
-        builder: (BuildContext context) => ActivityDetailScreen(activity: activity),
+  Widget _buildHeader(String? userId) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Text(
+                    'Current Location',
+                    style: TextStyle(
+                      color: Color(0xFF888888),
+                      fontSize: 12,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Icon(Icons.arrow_drop_down, color: Colors.grey[600], size: 16),
+                ],
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Jakarta, Indonesia', // Placeholder
+                style: TextStyle(
+                  color: Color(0xFF1A1A1A),
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          Row(
+            children: [
+              // QR Scan Button (User only)
+              GestureDetector(
+                onTap: () {
+                  _showQRScannerDialog(context);
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey[300]!),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.qr_code_scanner_rounded, size: 20, color: Color(0xFF1A1A1A)),
+                ),
+              ),
+              const SizedBox(width: 12),
+              // Notification
+              Stack(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey[300]!),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.notifications_none_rounded, size: 20, color: Color(0xFF1A1A1A)),
+                  ),
+                  Positioned(
+                    right: 8,
+                    top: 8,
+                    child: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFFF6B9D),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSearchBar() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      child: Row(
+        children: [
+          Expanded(
+            child: Container(
+              height: 50,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFE0E0E0)),
+              ),
+              child: TextField(
+                onChanged: (val) => setState(() => _searchQuery = val),
+                decoration: InputDecoration(
+                  hintText: 'Search events...',
+                  hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
+                  prefixIcon: Icon(Icons.search, color: const Color(0xFFFF6B9D), size: 22),
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Container(
+            height: 50,
+            width: 50,
+            decoration: BoxDecoration(
+              color: const Color(0xFFFF6B9D),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(Icons.tune_rounded, color: Colors.white, size: 24),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategories() {
+    return SizedBox(
+      height: 40,
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        scrollDirection: Axis.horizontal,
+        itemCount: _categories.length,
+        itemBuilder: (context, index) {
+          final category = _categories[index];
+          final isSelected = _selectedCategory == category;
+          return GestureDetector(
+            onTap: () => setState(() => _selectedCategory = category),
+            child: Container(
+              margin: const EdgeInsets.only(right: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              decoration: BoxDecoration(
+                color: isSelected ? const Color(0xFFFF6B9D) : const Color(0xFFFF6B9D).withOpacity(0.1), // Pink tint for unselected
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                category,
+                style: TextStyle(
+                  color: isSelected ? Colors.white : const Color(0xFFFF6B9D),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title, VoidCallback onSeeAll) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF1A1A1A),
+            ),
+          ),
+          GestureDetector(
+            onTap: onSeeAll,
+            child: Row(
+              children: const [
+                Text(
+                  'See All',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF888888),
+                  ),
+                ),
+                Icon(Icons.arrow_right_rounded, size: 18, color: Color(0xFF888888)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPopularEvents() {
+    return SizedBox(
+      height: 260,
+      child: StreamBuilder<List<Map<String, dynamic>>>(
+        stream: _firestoreService.getActivities(),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+          
+          final activities = snapshot.data!;
+          // Filter logic
+          final filtered = activities.where((a) {
+             final matchesSearch = (a['title'] as String? ?? '').toLowerCase().contains(_searchQuery.toLowerCase());
+             final matchesCategory = _selectedCategory == 'All' || (a['category'] as String? ?? '') == _selectedCategory;
+             return matchesSearch && matchesCategory;
+          }).toList();
+
+          if (filtered.isEmpty) return const Center(child: Text('No events found'));
+
+          return ListView.builder(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            scrollDirection: Axis.horizontal,
+            itemCount: filtered.length,
+            itemBuilder: (context, index) {
+              return _PopularEventCard(activity: filtered[index]);
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildUpcomingEvents() {
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      stream: _firestoreService.getActivities(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) return const SizedBox.shrink();
+        
+        final activities = snapshot.data!;
+        // Filter logic (same as above)
+        final filtered = activities.where((a) {
+             final matchesSearch = (a['title'] as String? ?? '').toLowerCase().contains(_searchQuery.toLowerCase());
+             final matchesCategory = _selectedCategory == 'All' || (a['category'] as String? ?? '') == _selectedCategory;
+             return matchesSearch && matchesCategory;
+        }).toList();
+
+        return ListView.builder(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          physics: const NeverScrollableScrollPhysics(),
+          shrinkWrap: true,
+          itemCount: filtered.length,
+          itemBuilder: (context, index) {
+            return _UpcomingEventCard(activity: filtered[index]);
+          },
+        );
+      },
+    );
+  }
+
+  void _showQRScannerDialog(BuildContext context) {
+    final TextEditingController codeController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Scan QR Code'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              height: 200,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: Colors.black,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.qr_code_scanner, color: Colors.white, size: 48),
+                    SizedBox(height: 16),
+                    Text(
+                      'Camera Scanner\n(Not available in this demo)',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.white70),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text('Or enter code manually:'),
+            const SizedBox(height: 8),
+            TextField(
+              controller: codeController,
+              decoration: InputDecoration(
+                hintText: 'Activity ID',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final String code = codeController.text.trim();
+              if (code.isNotEmpty) {
+                Navigator.pop(context);
+                // Fetch activity and navigate
+                final activity = await _firestoreService.getActivity(code);
+                if (activity != null && context.mounted) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => ActivityDetailScreen(activity: activity)),
+                  );
+                } else if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Activity not found')),
+                  );
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFFF6B9D),
+            ),
+            child: const Text('Join'),
+          ),
+        ],
       ),
     );
   }
 }
 
-/// Vertical card for activities scheduled this month.
-class MonthlyActivityCard extends StatelessWidget {
+class _PopularEventCard extends StatelessWidget {
   final Map<String, dynamic> activity;
-
-  const MonthlyActivityCard({super.key, required this.activity});
+  const _PopularEventCard({required this.activity});
 
   @override
   Widget build(BuildContext context) {
     final String posterUrl = (activity['posterUrl'] as String?) ?? '';
     final String title = (activity['title'] as String?) ?? 'Untitled';
-    final String location = (activity['location'] as String?) ?? 'No location';
-    final String summary = (activity['description'] as String?) ?? 'Tap to read more.';
+    final String location = (activity['location'] as String?) ?? 'Unknown';
+    final int participants = (activity['participantsCount'] as int?) ?? 0;
+
+    // Date formatting
+    String dateStr = 'TBA';
+    if (activity['startDate'] != null) {
+       try {
+         if (activity['startDate'] is Timestamp) {
+           dateStr = DateFormat('d MMM, h:mm a').format((activity['startDate'] as Timestamp).toDate());
+         } else {
+           dateStr = DateFormat('d MMM, h:mm a').format(DateTime.parse(activity['startDate']));
+         }
+       } catch (_) {}
+    }
 
     return GestureDetector(
-      onTap: () => _navigateToDetail(context),
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => ActivityDetailScreen(activity: activity)),
+        );
+      },
       child: Container(
-        padding: const EdgeInsets.all(18),
+        width: 240,
+        margin: const EdgeInsets.only(right: 16, bottom: 8),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: <BoxShadow>[
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 18,
-              offset: const Offset(0, 12),
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
-        child: Row(
-          children: <Widget>[
-            ClipRRect(
-              borderRadius: BorderRadius.circular(18),
-              child: SizedBox(
-                width: 90,
-                height: 90,
-                child: posterUrl.isEmpty
-                    ? Container(
-                        color: const Color(0xFFFFEEF2),
-                        child: const Icon(Icons.image_not_supported, color: Color(0xFFFFB6C1)),
-                      )
-                    : Image.network(
-                        posterUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
-                          color: const Color(0xFFFFEEF2),
-                          child: const Icon(Icons.broken_image_outlined, color: Color(0xFFFFB6C1)),
-                        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Image
+            Padding(
+              padding: const EdgeInsets.all(10),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: SizedBox(
+                  height: 130,
+                  width: double.infinity,
+                  child: posterUrl.isNotEmpty
+                      ? Image.network(posterUrl, fit: BoxFit.cover)
+                      : Container(color: Colors.grey[200], child: const Icon(Icons.image, color: Colors.grey)),
                 ),
               ),
             ),
-            const SizedBox(width: 16),
-            Expanded(
+            // Content
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
+                children: [
                   Text(
                     title,
-                    style: Theme.of(context).textTheme.titleMedium,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1A1A1A),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 6),
-                  Text(
-                    summary,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: Color(0xFF7C7C7C)),
-                  ),
-                  const SizedBox(height: 12),
                   Row(
-                    children: <Widget>[
-                      const Icon(Icons.place_outlined, size: 18, color: Color(0xFFFF6B9D)),
-                      const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      location,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                            color: Color(0xFF4A4A4A),
-                          ),
+                    children: [
+                      const Icon(Icons.people_outline_rounded, size: 14, color: Color(0xFFFF6B9D)),
+                      const SizedBox(width: 4),
+                      Text(
+                        '$participants Going',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: Color(0xFF6B7280),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const Spacer(),
+                      const Icon(Icons.location_on_outlined, size: 14, color: Color(0xFF9CA3AF)),
+                      const SizedBox(width: 2),
+                      Expanded(
+                        child: Text(
+                          location,
+                          style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280)),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
@@ -928,18 +636,137 @@ class MonthlyActivityCard extends StatelessWidget {
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right_rounded, color: Color(0xFFB0B0B0)),
           ],
         ),
       ),
     );
   }
+}
 
-  void _navigateToDetail(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute<void>(
-        builder: (BuildContext context) => ActivityDetailScreen(activity: activity),
+class _UpcomingEventCard extends StatelessWidget {
+  final Map<String, dynamic> activity;
+  const _UpcomingEventCard({required this.activity});
+
+  @override
+  Widget build(BuildContext context) {
+    final String posterUrl = (activity['posterUrl'] as String?) ?? '';
+    final String title = (activity['title'] as String?) ?? 'Untitled';
+    final String location = (activity['location'] as String?) ?? 'Unknown';
+    
+    // Date formatting
+    String month = 'OCT';
+    String day = '12';
+    if (activity['startDate'] != null) {
+       try {
+         DateTime date;
+         if (activity['startDate'] is Timestamp) {
+           date = (activity['startDate'] as Timestamp).toDate();
+         } else {
+           date = DateTime.parse(activity['startDate']);
+         }
+         month = DateFormat('MMM').format(date).toUpperCase();
+         day = DateFormat('d').format(date);
+       } catch (_) {}
+    }
+
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => ActivityDetailScreen(activity: activity)),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            // Image
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: SizedBox(
+                width: 80,
+                height: 80,
+                child: posterUrl.isNotEmpty
+                    ? Image.network(posterUrl, fit: BoxFit.cover)
+                    : Container(color: Colors.grey[200], child: const Icon(Icons.image, color: Colors.grey)),
+              ),
+            ),
+            const SizedBox(width: 16),
+            // Content
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1A1A1A),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Icon(Icons.location_on_outlined, size: 14, color: Color(0xFF9CA3AF)),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          location,
+                          style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            // Date Badge
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFEEF2),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                children: [
+                  Text(
+                    day,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFFFF6B9D),
+                    ),
+                  ),
+                  Text(
+                    month,
+                    style: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFFFF6B9D),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

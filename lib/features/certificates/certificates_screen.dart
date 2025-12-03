@@ -30,10 +30,17 @@ class CertificatesScreen extends StatelessWidget {
   }
 }
 
-class CertificatesView extends StatelessWidget {
+class CertificatesView extends StatefulWidget {
   final bool isEmbedded;
 
   const CertificatesView({super.key, required this.isEmbedded});
+
+  @override
+  State<CertificatesView> createState() => _CertificatesViewState();
+}
+
+class _CertificatesViewState extends State<CertificatesView> {
+  String _searchQuery = '';
 
   @override
   Widget build(BuildContext context) {
@@ -47,7 +54,7 @@ class CertificatesView extends StatelessWidget {
 
     return SafeArea(
       top: true,
-      bottom: !isEmbedded,
+      bottom: !widget.isEmbedded,
       child: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
         stream: FirebaseFirestore.instance.collection('users').doc(userId).snapshots(),
         builder: (BuildContext context,
@@ -63,9 +70,10 @@ class CertificatesView extends StatelessWidget {
           }
           final Map<String, dynamic> data = snapshot.data!.data() ?? <String, dynamic>{};
           final String userName = (data['name'] as String?) ?? 'Volunteer';
+          // Reverse to show newest first (assuming appended)
           final List<String> joinedActivities = List<String>.from(
             data['joinedActivities'] ?? <String>[],
-          );
+          ).reversed.toList();
 
           return CustomScrollView(
             physics: const BouncingScrollPhysics(),
@@ -94,6 +102,22 @@ class CertificatesView extends StatelessWidget {
                       const SizedBox(height: 20),
                       _buildSummaryCard(context, joinedActivities.length),
                       const SizedBox(height: 24),
+                      // Search/Filter
+                      TextField(
+                        onChanged: (val) => setState(() => _searchQuery = val),
+                        decoration: InputDecoration(
+                          hintText: 'Search certificates...',
+                          prefixIcon: const Icon(Icons.search),
+                          filled: true,
+                          fillColor: Colors.white,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide.none,
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
                     ],
                   ),
                 ),
@@ -106,17 +130,21 @@ class CertificatesView extends StatelessWidget {
               else
                 SliverPadding(
                   padding: const EdgeInsets.fromLTRB(24, 0, 24, 120),
-                  sliver: SliverList(
+                  sliver: SliverGrid(
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      mainAxisSpacing: 16,
+                      crossAxisSpacing: 16,
+                      childAspectRatio: 0.75,
+                    ),
                     delegate: SliverChildBuilderDelegate(
                       (BuildContext context, int index) {
                         final String activityId = joinedActivities[index];
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 18),
-                      child: _CertificateCard(
-                        activityId: activityId,
-                        userName: userName,
-                        certificateService: certificateService,
-                      ),
+                        return _CertificateCard(
+                          activityId: activityId,
+                          userName: userName,
+                          certificateService: certificateService,
+                          searchQuery: _searchQuery,
                         );
                       },
                       childCount: joinedActivities.length,
@@ -183,14 +211,6 @@ class CertificatesView extends StatelessWidget {
               ],
             ),
           ),
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.share, color: Colors.white, size: 20),
-          ),
         ],
       ),
     );
@@ -220,11 +240,13 @@ class _CertificateCard extends StatelessWidget {
   final String activityId;
   final String userName;
   final CertificateService certificateService;
+  final String searchQuery;
 
   const _CertificateCard({
     required this.activityId,
     required this.userName,
     required this.certificateService,
+    required this.searchQuery,
   });
 
   @override
@@ -243,15 +265,20 @@ class _CertificateCard extends StatelessWidget {
         final String title = (activity['title'] as String?) ?? 'Activity';
         final String posterUrl = (activity['posterUrl'] as String?) ?? '';
 
+        // Filter logic
+        if (searchQuery.isNotEmpty && !title.toLowerCase().contains(searchQuery.toLowerCase())) {
+          return const SizedBox.shrink();
+        }
+
         return Container(
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(20),
             boxShadow: <BoxShadow>[
               BoxShadow(
                 color: Colors.black.withOpacity(0.06),
-                blurRadius: 20,
-                offset: const Offset(0, 10),
+                blurRadius: 10,
+                offset: const Offset(0, 5),
               ),
             ],
           ),
@@ -259,16 +286,16 @@ class _CertificateCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
                 child: AspectRatio(
-                  aspectRatio: 16 / 9,
+                  aspectRatio: 16 / 10,
                   child: posterUrl.isEmpty
                       ? Container(
                           color: const Color(0xFFFFEEF2),
                           child: const Icon(
                             Icons.image_outlined,
                             color: Color(0xFFFFB6C1),
-                            size: 48,
+                            size: 32,
                           ),
                         )
                       : Image.network(
@@ -279,70 +306,45 @@ class _CertificateCard extends StatelessWidget {
                             child: const Icon(
                               Icons.broken_image_outlined,
                               color: Color(0xFFFFB6C1),
-                              size: 48,
+                              size: 32,
                             ),
                           ),
                         ),
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF1F1F1F),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: <Widget>[
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF1F1F1F),
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                    const SizedBox(height: 10),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE8F5E9),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: <Widget>[
-                          Icon(Icons.verified_rounded, color: Color(0xFF27AE60), size: 16),
-                          SizedBox(width: 6),
-                          Text(
-                            'Completed',
-                            style: TextStyle(
-                              color: Color(0xFF27AE60),
-                              fontWeight: FontWeight.w600,
-                              fontSize: 13,
+                      SizedBox(
+                        width: double.infinity,
+                        height: 36,
+                        child: ElevatedButton(
+                          onPressed: () => _handleGenerate(context, title),
+                          style: ElevatedButton.styleFrom(
+                            padding: EdgeInsets.zero,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: () => _handleGenerate(context, title),
-                        icon: const Icon(Icons.download_rounded, size: 20),
-                        label: const Text(
-                          'Generate Certificate',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
+                          child: const Icon(Icons.download_rounded, size: 20),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ],

@@ -5,131 +5,53 @@ import 'package:intl/intl.dart';
 import '../../services/firestore_service.dart';
 import 'activity_detail_screen.dart';
 
-class AllActivitiesScreen extends StatefulWidget {
-  const AllActivitiesScreen({super.key});
+class MyActivitiesView extends StatefulWidget {
+  final String? userId;
+
+  const MyActivitiesView({super.key, required this.userId});
 
   @override
-  State<AllActivitiesScreen> createState() => _AllActivitiesScreenState();
+  State<MyActivitiesView> createState() => _MyActivitiesViewState();
 }
 
-class _AllActivitiesScreenState extends State<AllActivitiesScreen> {
+class _MyActivitiesViewState extends State<MyActivitiesView> {
   final FirestoreService _firestoreService = FirestoreService();
-  String _searchQuery = '';
   String _selectedCategory = 'All';
-
-  final List<String> _categories = <String>[
-    'All',
-    'Community',
-    'Education',
-    'Healthcare',
-    'Environment',
-    'Other',
-  ];
+  final List<String> _categories = ['All', 'Community', 'Education', 'Healthcare', 'Environment', 'Other'];
 
   @override
   Widget build(BuildContext context) {
+    if (widget.userId == null) {
+      return const Scaffold(
+        body: Center(child: Text('Please sign in to view your activities.')),
+      );
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFFAFAFA),
       appBar: AppBar(
-        title: const Text('All Activities'),
+        title: const Text('My Activities'),
+        automaticallyImplyLeading: false,
         backgroundColor: Colors.white,
         elevation: 0,
       ),
-      body: Column(
-        children: <Widget>[
-          _buildFilters(),
-          Expanded(
-            child: StreamBuilder<List<Map<String, dynamic>>>(
-              stream: _firestoreService.getActivities(),
-              builder: (BuildContext context,
-                  AsyncSnapshot<List<Map<String, dynamic>>> snapshot) {
-                if (snapshot.hasError) {
-                  return const Center(child: Text('Error loading activities'));
-                }
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
-                List<Map<String, dynamic>> activities =
-                    snapshot.data ?? <Map<String, dynamic>>[];
-
-                // Filter
-                activities = activities.where((activity) {
-                  final String title =
-                      (activity['title'] as String? ?? '').toLowerCase();
-                  final String category =
-                      (activity['category'] as String? ?? 'Other');
-                  final bool matchesSearch =
-                      title.contains(_searchQuery.toLowerCase());
-                  final bool matchesCategory = _selectedCategory == 'All' ||
-                      category.toLowerCase() == _selectedCategory.toLowerCase();
-                  return matchesSearch && matchesCategory;
-                }).toList();
-
-                if (activities.isEmpty) {
-                  return const Center(child: Text('No activities found'));
-                }
-
-                return ListView.builder(
-                  padding: const EdgeInsets.all(20),
-                  itemCount: activities.length,
-                  itemBuilder: (BuildContext context, int index) {
-                    return _MinimalistActivityCard(activity: activities[index]);
-                  },
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFilters() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      color: const Color(0xFFFAFAFA),
-      child: Column(
-        children: <Widget>[
-          Container(
-            height: 50,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: const Color(0xFFE0E0E0), width: 1),
-            ),
-            child: Row(
-              children: [
-                const SizedBox(width: 16),
-                Icon(Icons.search, color: Colors.grey[400], size: 22),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: TextField(
-                    onChanged: (value) => setState(() => _searchQuery = value),
-                    decoration: InputDecoration(
-                      hintText: 'Search activities',
-                      hintStyle: TextStyle(
-                        color: Colors.grey[400],
-                        fontSize: 15,
-                      ),
-                      border: InputBorder.none,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: _categories.map((category) {
-                final bool isSelected = _selectedCategory == category;
-                return Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: GestureDetector(
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Category Filter
+            SizedBox(
+              height: 60,
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                scrollDirection: Axis.horizontal,
+                itemCount: _categories.length,
+                itemBuilder: (context, index) {
+                  final category = _categories[index];
+                  final isSelected = _selectedCategory == category;
+                  return GestureDetector(
                     onTap: () => setState(() => _selectedCategory = category),
                     child: Container(
+                      margin: const EdgeInsets.only(right: 8),
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       decoration: BoxDecoration(
                         color: isSelected ? const Color(0xFFFF6B9D) : Colors.white,
@@ -139,23 +61,91 @@ class _AllActivitiesScreenState extends State<AllActivitiesScreen> {
                           width: 1,
                         ),
                       ),
-                      child: Text(
-                        category,
-                        style: TextStyle(
-                          color: isSelected ? Colors.white : const Color(0xFF666666),
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14,
+                      child: Center(
+                        child: Text(
+                          category,
+                          style: TextStyle(
+                            color: isSelected ? Colors.white : const Color(0xFF666666),
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                );
-              }).toList(),
+                  );
+                },
+              ),
             ),
-          ),
-        ],
+            // Activities List
+            Expanded(
+              child: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+                stream: FirebaseFirestore.instance.collection('users').doc(widget.userId).snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (!snapshot.hasData || !snapshot.data!.exists) {
+                    return const Center(child: Text('No data found.'));
+                  }
+
+                  final userData = snapshot.data!.data() ?? {};
+                  final List<String> joinedActivities = List<String>.from(userData['joinedActivities'] ?? []);
+
+                  if (joinedActivities.isEmpty) {
+                    return const Center(child: Text('You haven\'t joined any activities yet.'));
+                  }
+
+                  return StreamBuilder<List<Map<String, dynamic>>>(
+                    stream: _firestoreService.getActivities(),
+                    builder: (context, activitiesSnapshot) {
+                      if (!activitiesSnapshot.hasData) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+
+                      final allActivities = activitiesSnapshot.data!;
+                      final myActivities = allActivities.where((activity) {
+                        final activityId = activity['id'] as String?;
+                        final category = activity['category'] as String? ?? 'Other';
+                        final matchesCategory = _selectedCategory == 'All' || category == _selectedCategory;
+                        return activityId != null && joinedActivities.contains(activityId) && matchesCategory;
+                      }).toList();
+
+                      // Sort by nearest date
+                      myActivities.sort((a, b) {
+                        final dateA = _getDateString(a['startDate']);
+                        final dateB = _getDateString(b['startDate']);
+                        return dateA.compareTo(dateB);
+                      });
+
+                      if (myActivities.isEmpty) {
+                        return const Center(child: Text('No activities found for this category.'));
+                      }
+
+                      return ListView.builder(
+                        padding: const EdgeInsets.all(20),
+                        itemCount: myActivities.length,
+                        itemBuilder: (context, index) {
+                          return _MinimalistActivityCard(activity: myActivities[index]);
+                        },
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
+  }
+
+  String _getDateString(dynamic date) {
+    if (date is Timestamp) {
+      return date.toDate().toIso8601String();
+    } else if (date is String) {
+      return date;
+    }
+    return '';
   }
 }
 

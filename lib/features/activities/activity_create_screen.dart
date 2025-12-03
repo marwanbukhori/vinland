@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
 
 import '../../services/firestore_service.dart';
 import '../../services/storage_service.dart';
@@ -23,8 +24,21 @@ class _ActivityCreateScreenState extends State<ActivityCreateScreen> {
   String title = '';
   String description = '';
   String location = '';
+  String category = 'Community'; // Default
   File? selectedImage;
   bool isSubmitting = false;
+
+  DateTime startDate = DateTime.now().add(const Duration(days: 1));
+  DateTime endDate = DateTime.now().add(const Duration(days: 1, hours: 3));
+
+  final List<String> _categories = [
+    'Community',
+    'Education',
+    'Healthcare',
+    'Environment',
+    'Fundraising',
+    'Other'
+  ];
 
   Future<void> _pickImage() async {
     final XFile? pickedFile = await picker.pickImage(
@@ -41,6 +55,69 @@ class _ActivityCreateScreenState extends State<ActivityCreateScreen> {
     });
   }
 
+  Future<void> _pickDateTime(bool isStart) async {
+    final DateTime initialDate = isStart ? startDate : endDate;
+    final DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFFFF6B9D),
+              onPrimary: Colors.white,
+              onSurface: Color(0xFF1F1F1F),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (pickedDate != null) {
+      if (!mounted) return;
+      final TimeOfDay? pickedTime = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.fromDateTime(initialDate),
+        builder: (context, child) {
+          return Theme(
+            data: Theme.of(context).copyWith(
+              colorScheme: const ColorScheme.light(
+                primary: Color(0xFFFF6B9D),
+                onPrimary: Colors.white,
+                onSurface: Color(0xFF1F1F1F),
+              ),
+            ),
+            child: child!,
+          );
+        },
+      );
+
+      if (pickedTime != null) {
+        setState(() {
+          final DateTime newDateTime = DateTime(
+            pickedDate.year,
+            pickedDate.month,
+            pickedDate.day,
+            pickedTime.hour,
+            pickedTime.minute,
+          );
+          if (isStart) {
+            startDate = newDateTime;
+            // Ensure end date is after start date
+            if (endDate.isBefore(startDate)) {
+              endDate = startDate.add(const Duration(hours: 3));
+            }
+          } else {
+            endDate = newDateTime;
+          }
+        });
+      }
+    }
+  }
+
   Future<void> _handleSubmit() async {
     if (!formKey.currentState!.validate()) {
       return;
@@ -48,26 +125,114 @@ class _ActivityCreateScreenState extends State<ActivityCreateScreen> {
     setState(() {
       isSubmitting = true;
     });
-    String? imageUrl;
-    if (selectedImage != null) {
-      imageUrl = await storageService.uploadImage(
-        selectedImage!,
-        'activities/${DateTime.now().millisecondsSinceEpoch}.jpg',
-      );
+
+    try {
+      String? imageUrl;
+      if (selectedImage != null) {
+        imageUrl = await storageService.uploadImage(
+          selectedImage!,
+          'activities/${DateTime.now().millisecondsSinceEpoch}.jpg',
+        );
+      }
+      
+      final DateTime now = DateTime.now();
+
+      await firestoreService.addActivity(<String, dynamic>{
+        'title': title,
+        'description': description,
+        'location': location,
+        'category': category,
+        'posterUrl': imageUrl ?? '',
+        'startDate': startDate.toIso8601String(),
+        'endDate': endDate.toIso8601String(),
+        'createdAt': now,
+        'participantsCount': 0,
+        'participants': [],
+      });
+
+      if (mounted) {
+        _showSuccessDialog(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        _showErrorDialog(context, e.toString());
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          isSubmitting = false;
+        });
+      }
     }
-    await firestoreService.addActivity(<String, dynamic>{
-      'title': title,
-      'description': description,
-      'location': location,
-      'posterUrl': imageUrl ?? '',
-      'createdAt': DateTime.now(),
-    });
-    setState(() {
-      isSubmitting = false;
-    });
-    if (mounted) {
-      Navigator.pop(context);
-    }
+  }
+
+  void _showSuccessDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: const [
+              Icon(Icons.check_circle_outline, color: Color(0xFF27AE60), size: 60),
+              SizedBox(height: 16),
+              Text('Activity Published!', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+              SizedBox(height: 8),
+              Text('Your activity is now live for volunteers to join.', textAlign: TextAlign.center),
+            ],
+          ),
+          actions: [
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context); // Close dialog
+                  Navigator.pop(context); // Close screen
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFFF6B9D),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: const Text('Done'),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showErrorDialog(BuildContext context, String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Column(
+            children: [
+              Icon(Icons.error_outline, color: Color(0xFFEB5757), size: 60),
+              SizedBox(height: 10),
+              Text('Submission Failed', style: TextStyle(fontWeight: FontWeight.bold)),
+            ],
+          ),
+          content: Text(
+            message,
+            textAlign: TextAlign.center,
+          ),
+          actions: <Widget>[
+            SizedBox(
+              width: double.infinity,
+              child: TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Try Again', style: TextStyle(color: Color(0xFFFF6B9D))),
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -139,6 +304,57 @@ class _ActivityCreateScreenState extends State<ActivityCreateScreen> {
                   validator: (String? value) => value == null || value.isEmpty ? 'Location is required' : null,
                 ),
                 const SizedBox(height: 18),
+                // Category Dropdown
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Category',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF4C4C4C),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    DropdownButtonFormField<String>(
+                      value: category,
+                      items: _categories.map((String value) {
+                        return DropdownMenuItem<String>(
+                          value: value,
+                          child: Text(value),
+                        );
+                      }).toList(),
+                      onChanged: (val) => setState(() => category = val!),
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                // Date Pickers
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildDateTimePicker(
+                        label: 'Start Date',
+                        selectedDate: startDate,
+                        onTap: () => _pickDateTime(true),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _buildDateTimePicker(
+                        label: 'End Date',
+                        selectedDate: endDate,
+                        onTap: () => _pickDateTime(false),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
                 _buildTextField(
                   label: 'Description',
                   hint: 'Share the story, roles, and impact your volunteers will make.',
@@ -165,6 +381,47 @@ class _ActivityCreateScreenState extends State<ActivityCreateScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildDateTimePicker({
+    required String label,
+    required DateTime selectedDate,
+    required VoidCallback onTap,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF4C4C4C),
+          ),
+        ),
+        const SizedBox(height: 8),
+        GestureDetector(
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey[400]!),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  DateFormat('MMM d, h:mm a').format(selectedDate),
+                  style: const TextStyle(fontSize: 16),
+                ),
+                const Icon(Icons.calendar_today, size: 18, color: Color(0xFF666666)),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 

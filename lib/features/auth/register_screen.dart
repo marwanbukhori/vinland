@@ -117,19 +117,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             error = 'Registration failed. Please try again.';
                             _isLoading = false;
                           });
-                        } else {
-                          // Success! Show message and navigate
                           if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Welcome, $name! 🎉'),
-                                backgroundColor: const Color(0xFFFF6B9D),
-                                duration: const Duration(seconds: 2),
-                              ),
-                            );
-                            // The Wrapper will automatically navigate to home
-                            // because authService.user is now set
-                            Navigator.pop(context);
+                            _showErrorDialog(context);
+                          }
+                        } else {
+                          if (context.mounted) {
+                            _showSuccessDialog(context, name);
                           }
                         }
                       }
@@ -156,6 +149,78 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  void _showSuccessDialog(BuildContext context, String userName) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Column(
+            children: [
+              Icon(Icons.check_circle_outline, color: Color(0xFF27AE60), size: 60),
+              SizedBox(height: 10),
+              Text('Welcome!', style: TextStyle(fontWeight: FontWeight.bold)),
+            ],
+          ),
+          content: Text(
+            'Registration successful, $userName! You can now start exploring activities.',
+            textAlign: TextAlign.center,
+          ),
+          actions: <Widget>[
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context); // Close dialog
+                  Navigator.pop(context); // Close register screen (back to login/home)
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFFF6B9D),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: const Text('Get Started'),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showErrorDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Column(
+            children: [
+              Icon(Icons.error_outline, color: Color(0xFFEB5757), size: 60),
+              SizedBox(height: 10),
+              Text('Registration Failed', style: TextStyle(fontWeight: FontWeight.bold)),
+            ],
+          ),
+          content: const Text(
+            'We could not register you at this time. Please check your details and try again.',
+            textAlign: TextAlign.center,
+          ),
+          actions: <Widget>[
+            SizedBox(
+              width: double.infinity,
+              child: TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                child: const Text('Try Again', style: TextStyle(color: Color(0xFFFF6B9D))),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

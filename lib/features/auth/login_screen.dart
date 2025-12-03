@@ -33,11 +33,6 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
-                // const Icon(
-                //   Icons.favorite,
-                //   size: 80,
-                //   color: Color(0xFFFF6B9D),
-                // ),
                 const Text(
                   'Engage360',
                   style: TextStyle(
@@ -77,11 +72,17 @@ class _LoginScreenState extends State<LoginScreen> {
                       if (_formKey.currentState!.validate()) {
                         setState(() => _isLoading = true);
                         dynamic result = await authService.signInWithEmailAndPassword(email, password);
+                        
                         if (result == null) {
                           setState(() {
                             error = 'Could not sign in with those credentials';
                             _isLoading = false;
                           });
+                          if (context.mounted) _showErrorDialog(context);
+                        } else {
+                          if (context.mounted) {
+                             _showSuccessDialog(context);
+                          }
                         }
                       }
                     },
@@ -117,6 +118,68 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  void _showSuccessDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        Future.delayed(const Duration(seconds: 1), () {
+          if (context.mounted) {
+            Navigator.of(context).pop(true);
+          }
+        });
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: const [
+                Icon(Icons.check_circle_rounded, color: Color(0xFF27AE60), size: 48),
+                SizedBox(height: 16),
+                Text(
+                  'Welcome Back!',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showErrorDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Column(
+            children: [
+              Icon(Icons.error_outline, color: Color(0xFFEB5757), size: 48),
+              SizedBox(height: 10),
+              Text('Login Failed', style: TextStyle(fontWeight: FontWeight.bold)),
+            ],
+          ),
+          content: const Text(
+            'Invalid email or password. Please try again.',
+            textAlign: TextAlign.center,
+          ),
+          actions: <Widget>[
+            SizedBox(
+              width: double.infinity,
+              child: TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Try Again', style: TextStyle(color: Color(0xFFFF6B9D))),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

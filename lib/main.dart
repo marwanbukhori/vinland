@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import 'features/activities/activity_list_screen.dart';
 import 'features/auth/login_screen.dart';
+import 'features/profile/profile_screen.dart';
 import 'firebase_options.dart';
 import 'services/auth_service.dart';
 
@@ -29,6 +30,9 @@ class MyApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         theme: _buildTheme(),
         home: const Wrapper(),
+        routes: {
+          '/profile': (context) => const ProfileScreen(),
+        },
       ),
     );
   }
@@ -214,3 +218,4 @@ ThemeData _buildTheme() {
     ),
   );
 }
+
