@@ -43,6 +43,26 @@ class _RewardsScreenState extends State<RewardsScreen> with SingleTickerProvider
         final String role = userData?['role'] ?? 'volunteer';
         final bool isAdmin = role == 'organization';
 
+        if (isAdmin) {
+          return Scaffold(
+            appBar: AppBar(
+              title: const Text('Reward Management'),
+              centerTitle: true,
+            ),
+            body: _buildAdminVoucherList(),
+            floatingActionButton: FloatingActionButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const VoucherCreateScreen()),
+                );
+              },
+              backgroundColor: const Color(0xFFFF6B9D),
+              child: const Icon(Icons.add),
+            ),
+          );
+        }
+
         return Scaffold(
           appBar: AppBar(
             title: const Text('Rewards Marketplace'),
@@ -88,18 +108,58 @@ class _RewardsScreenState extends State<RewardsScreen> with SingleTickerProvider
               _buildMyRewards(userId),
             ],
           ),
-          floatingActionButton: isAdmin
-              ? FloatingActionButton(
+        );
+      },
+    );
+  }
+
+  Widget _buildAdminVoucherList() {
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      stream: _firestoreService.getVouchers(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return const Center(child: Text('No vouchers created yet.'));
+        }
+
+        final vouchers = snapshot.data!;
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: vouchers.length,
+          itemBuilder: (context, index) {
+            final voucher = vouchers[index];
+            return Card(
+              margin: const EdgeInsets.only(bottom: 16),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              child: ListTile(
+                leading: voucher['imageUrl'] != null && voucher['imageUrl'].isNotEmpty
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.network(
+                          voucher['imageUrl'],
+                          width: 50,
+                          height: 50,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => const Icon(Icons.card_giftcard),
+                        ),
+                      )
+                    : const Icon(Icons.card_giftcard, color: Color(0xFFFF6B9D)),
+                title: Text(voucher['title'] ?? 'Reward'),
+                subtitle: Text('${voucher['cost']} pts'),
+                trailing: IconButton(
+                  icon: const Icon(Icons.delete_outline, color: Colors.red),
                   onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const VoucherCreateScreen()),
+                    // Implement delete functionality if needed
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Delete not implemented yet')),
                     );
                   },
-                  backgroundColor: const Color(0xFFFF6B9D),
-                  child: const Icon(Icons.add),
-                )
-              : null,
+                ),
+              ),
+            );
+          },
         );
       },
     );

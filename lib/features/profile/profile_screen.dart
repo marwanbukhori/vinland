@@ -109,57 +109,57 @@ class _ProfileViewState extends State<ProfileView> {
                     
                     // Action Buttons
                     if (!isOrganizer) _buildUserActionButtons(context),
-                    if (isOrganizer) _buildOrganizerActionButtons(context),
+                    // if (isOrganizer) _buildOrganizerActionButtons(context),
                     
                     const SizedBox(height: 28),
                     
                     // Section Header
-                    _buildSectionHeader(
-                      isOrganizer ? 'My Organized Activities' : 'My Activities',
-                      'Sorted by nearest date'
-                    ),
-                    const SizedBox(height: 16),
+                    // _buildSectionHeader(
+                    //   isOrganizer ? 'My Organized Activities' : 'My Activities',
+                    //   'Sorted by nearest date'
+                    // ),
+                    // const SizedBox(height: 16),
                   ],
                 ),
               ),
             ),
             
             // Activity List
-            FutureBuilder<List<Map<String, dynamic>>>(
-              future: _fetchAndSortActivities(joinedActivities, isOrganizer, userId),
-              builder: (context, activitySnapshot) {
-                if (activitySnapshot.connectionState == ConnectionState.waiting) {
-                  return const SliverToBoxAdapter(child: Center(child: CircularProgressIndicator()));
-                }
+            // FutureBuilder<List<Map<String, dynamic>>>(
+            //   future: _fetchAndSortActivities(joinedActivities, isOrganizer, userId),
+            //   builder: (context, activitySnapshot) {
+            //     if (activitySnapshot.connectionState == ConnectionState.waiting) {
+            //       return const SliverToBoxAdapter(child: Center(child: CircularProgressIndicator()));
+            //     }
                 
-                final activities = activitySnapshot.data ?? [];
+            //     final activities = activitySnapshot.data ?? [];
 
-                if (activities.isEmpty) {
-                  return SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.only(bottom: 120),
-                      child: _buildEmptyJourney(isOrganizer),
-                    ),
-                  );
-                }
+            //     if (activities.isEmpty) {
+            //       return SliverToBoxAdapter(
+            //         child: Padding(
+            //           padding: const EdgeInsets.only(bottom: 120),
+            //           child: _buildEmptyJourney(isOrganizer),
+            //         ),
+            //       );
+            //     }
 
-                return SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 120),
-                  sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (BuildContext context, int index) {
-                        final activity = activities[index];
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 16),
-                          child: _ActivityTile(activity: activity),
-                        );
-                      },
-                      childCount: activities.length,
-                    ),
-                  ),
-                );
-              },
-            ),
+            //     return SliverPadding(
+            //       padding: const EdgeInsets.fromLTRB(24, 0, 24, 120),
+            //       sliver: SliverList(
+            //         delegate: SliverChildBuilderDelegate(
+            //           (BuildContext context, int index) {
+            //             final activity = activities[index];
+            //             return Padding(
+            //               padding: const EdgeInsets.only(bottom: 16),
+            //               child: _ActivityTile(activity: activity),
+            //             );
+            //           },
+            //           childCount: activities.length,
+            //         ),
+            //       ),
+            //     );
+            //   },
+            // ),
 
             SliverToBoxAdapter(
               child: Padding(
@@ -383,23 +383,23 @@ class _ProfileViewState extends State<ProfileView> {
     );
   }
 
-  Widget _buildOrganizerActionButtons(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: _ActionButton(
-        label: 'Go to Dashboard',
-        icon: Icons.dashboard_rounded,
-        onTap: () {
-          // Assuming ActivityListScreen handles navigation, but we can push directly
-          // Or switch tab. For now, pushing Dashboard is fine.
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const AdminDashboard()),
-          );
-        },
-      ),
-    );
-  }
+  // Widget _buildOrganizerActionButtons(BuildContext context) {
+  //   return SizedBox(
+  //     width: double.infinity,
+  //     child: _ActionButton(
+  //       label: 'Go to Dashboard',
+  //       icon: Icons.dashboard_rounded,
+  //       onTap: () {
+  //         // Assuming ActivityListScreen handles navigation, but we can push directly
+  //         // Or switch tab. For now, pushing Dashboard is fine.
+  //         Navigator.push(
+  //           context,
+  //           MaterialPageRoute(builder: (context) => const AdminDashboard()),
+  //         );
+  //       },
+  //     ),
+  //   );
+  // }
 
   Widget _buildSectionHeader(String title, String subtitle) {
     return Row(

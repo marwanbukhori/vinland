@@ -13,6 +13,7 @@ import 'activity_create_screen.dart';
 import 'all_activities_screen.dart';
 import 'my_activities_screen.dart';
 import 'admin_dashboard.dart';
+import '../ranking/ranking_screen.dart';
 
 class ActivityListScreen extends StatefulWidget {
   const ActivityListScreen({super.key});
@@ -40,6 +41,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
         final List<Widget> screens = [
           const ActivitiesHomeView(),
           if (isOrganization) const AdminDashboard() else MyActivitiesView(userId: userId),
+          const RankingScreen(),
           const RewardsScreen(),
           const CertificatesScreen(),
           const ProfileScreen(),
@@ -53,7 +55,6 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
           bottomNavigationBar: _buildBottomNav(isOrganization),
           floatingActionButton: isOrganization && _currentIndex == 1 // Show on Dashboard tab
               ? FloatingActionButton(
-                  heroTag: 'home_fab',
                   onPressed: () {
                     Navigator.push(
                       context,
@@ -90,9 +91,10 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
               _buildNavItem(0, Icons.explore_rounded, 'Explore'),
               _buildNavItem(1, isOrganization ? Icons.dashboard_rounded : Icons.event_note_rounded, 
                 isOrganization ? 'Dashboard' : 'My Events'),
-              _buildNavItem(2, Icons.card_giftcard_rounded, 'Rewards'), // Changed icon
-              _buildNavItem(3, Icons.workspace_premium_rounded, 'Certificates'),
-              _buildNavItem(4, Icons.person_rounded, 'Profile'),
+              _buildNavItem(2, Icons.leaderboard_rounded, 'Ranking'),
+              _buildNavItem(3, Icons.card_giftcard_rounded, 'Rewards'),
+              _buildNavItem(4, Icons.workspace_premium_rounded, 'Certificates'),
+              _buildNavItem(5, Icons.person_rounded, 'Profile'),
             ],
           ),
         ),
@@ -202,84 +204,122 @@ class _ActivitiesHomeViewState extends State<ActivitiesHomeView> {
   }
 
   Widget _buildHeader(String? userId) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return StreamBuilder<DocumentSnapshot>(
+      stream: userId != null ? FirebaseFirestore.instance.collection('users').doc(userId).snapshots() : null,
+      builder: (context, snapshot) {
+        final String userName = snapshot.data?.get('name') ?? 'Volunteer';
+        
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Current Location',
+                    'Welcome back,',
                     style: TextStyle(
                       color: Color(0xFF888888),
-                      fontSize: 12,
+                      fontSize: 14,
                     ),
                   ),
-                  const SizedBox(width: 4),
-                  Icon(Icons.arrow_drop_down, color: Colors.grey[600], size: 16),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Hi, $userName',
+                    style: const TextStyle(
+                      color: Color(0xFF1A1A1A),
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ],
               ),
-              const SizedBox(height: 4),
-              const Text(
-                'Jakarta, Indonesia', // Placeholder
-                style: TextStyle(
-                  color: Color(0xFF1A1A1A),
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          Row(
-            children: [
-              // QR Scan Button (User only)
+              // Notification
               GestureDetector(
                 onTap: () {
-                  _showQRScannerDialog(context);
-                },
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey[300]!),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.qr_code_scanner_rounded, size: 20, color: Color(0xFF1A1A1A)),
-                ),
-              ),
-              const SizedBox(width: 12),
-              // Notification
-              Stack(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey[300]!),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.notifications_none_rounded, size: 20, color: Color(0xFF1A1A1A)),
-                  ),
-                  Positioned(
-                    right: 8,
-                    top: 8,
-                    child: Container(
-                      width: 8,
-                      height: 8,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFFF6B9D),
-                        shape: BoxShape.circle,
+                  showDialog(
+                    context: context,
+                    builder: (context) => Dialog(
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text(
+                                  'Notifications',
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                                ),
+                                GestureDetector(
+                                  onTap: () => Navigator.pop(context),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(4),
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey[100],
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(Icons.close, size: 20, color: Colors.grey),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 32),
+                            const Icon(Icons.notifications_none_rounded, size: 64, color: Color(0xFFE0E0E0)),
+                            const SizedBox(height: 16),
+                            const Text(
+                              'No new notifications',
+                              style: TextStyle(
+                                color: Color(0xFF9E9E9E),
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            const Text(
+                              'We\'ll let you know when there are updates.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: Color(0xFFBDBDBD), fontSize: 14),
+                            ),
+                            const SizedBox(height: 32),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  );
+                },
+                child: Stack(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey[300]!),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.notifications_none_rounded, size: 24, color: Color(0xFF1A1A1A)),
+                    ),
+                    Positioned(
+                      right: 10,
+                      top: 10,
+                      child: Container(
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFFF6B9D),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -541,16 +581,39 @@ class _PopularEventCard extends StatelessWidget {
     final String location = (activity['location'] as String?) ?? 'Unknown';
     final int participants = (activity['participantsCount'] as int?) ?? 0;
 
-    // Date formatting
-    String dateStr = 'TBA';
+    // Date & Status Logic
+    DateTime? startDate;
+    DateTime? endDate;
+    String status = 'Upcoming';
+    Color statusColor = const Color(0xFF2196F3); // Blue
+    Color statusBg = const Color(0xFFE3F2FD);
+
     if (activity['startDate'] != null) {
-       try {
-         if (activity['startDate'] is Timestamp) {
-           dateStr = DateFormat('d MMM, h:mm a').format((activity['startDate'] as Timestamp).toDate());
-         } else {
-           dateStr = DateFormat('d MMM, h:mm a').format(DateTime.parse(activity['startDate']));
-         }
-       } catch (_) {}
+       if (activity['startDate'] is Timestamp) {
+         startDate = (activity['startDate'] as Timestamp).toDate();
+       } else {
+         startDate = DateTime.tryParse(activity['startDate'].toString());
+       }
+    }
+    if (activity['endDate'] != null) {
+       if (activity['endDate'] is Timestamp) {
+         endDate = (activity['endDate'] as Timestamp).toDate();
+       } else {
+         endDate = DateTime.tryParse(activity['endDate'].toString());
+       }
+    }
+
+    if (startDate != null) {
+      final now = DateTime.now();
+      if (endDate != null && now.isAfter(endDate!)) {
+        status = 'Completed';
+        statusColor = const Color(0xFF4CAF50); // Green
+        statusBg = const Color(0xFFE8F5E9);
+      } else if (now.isAfter(startDate!) && (endDate == null || now.isBefore(endDate!))) {
+        status = 'In Progress';
+        statusColor = const Color(0xFFFF9800); // Orange
+        statusBg = const Color(0xFFFFF3E0);
+      }
     }
 
     return GestureDetector(
@@ -561,7 +624,7 @@ class _PopularEventCard extends StatelessWidget {
         );
       },
       child: Container(
-        width: 240,
+        width: 260,
         margin: const EdgeInsets.only(right: 16, bottom: 8),
         decoration: BoxDecoration(
           color: Colors.white,
@@ -580,15 +643,44 @@ class _PopularEventCard extends StatelessWidget {
             // Image
             Padding(
               padding: const EdgeInsets.all(10),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(14),
-                child: SizedBox(
-                  height: 130,
-                  width: double.infinity,
-                  child: posterUrl.isNotEmpty
-                      ? Image.network(posterUrl, fit: BoxFit.cover)
-                      : Container(color: Colors.grey[200], child: const Icon(Icons.image, color: Colors.grey)),
-                ),
+              child: Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(14),
+                    child: SizedBox(
+                      height: 140,
+                      width: double.infinity,
+                      child: posterUrl.isNotEmpty
+                          ? Image.network(
+                              posterUrl, 
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(color: Colors.grey[200], child: const Icon(Icons.broken_image, color: Colors.grey));
+                              },
+                            )
+                          : Container(color: Colors.grey[200], child: const Icon(Icons.image, color: Colors.grey)),
+                    ),
+                  ),
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: statusBg,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        status,
+                        style: TextStyle(
+                          color: statusColor,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
             // Content
@@ -600,39 +692,44 @@ class _PopularEventCard extends StatelessWidget {
                   Text(
                     title,
                     style: const TextStyle(
-                      fontSize: 15,
+                      fontSize: 16,
                       fontWeight: FontWeight.bold,
                       color: Color(0xFF1A1A1A),
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 8),
                   Row(
                     children: [
-                      const Icon(Icons.people_outline_rounded, size: 14, color: Color(0xFFFF6B9D)),
+                      const Icon(Icons.people_outline_rounded, size: 16, color: Color(0xFFFF6B9D)),
                       const SizedBox(width: 4),
                       Text(
                         '$participants Going',
                         style: const TextStyle(
-                          fontSize: 11,
+                          fontSize: 12,
                           color: Color(0xFF6B7280),
                           fontWeight: FontWeight.w500,
                         ),
                       ),
-                      const Spacer(),
-                      const Icon(Icons.location_on_outlined, size: 14, color: Color(0xFF9CA3AF)),
-                      const SizedBox(width: 2),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      const Icon(Icons.location_on_outlined, size: 16, color: Color(0xFF9CA3AF)),
+                      const SizedBox(width: 4),
                       Expanded(
                         child: Text(
                           location,
-                          style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280)),
+                          style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
                   ),
+                  const SizedBox(height: 12),
                 ],
               ),
             ),
@@ -654,8 +751,10 @@ class _UpcomingEventCard extends StatelessWidget {
     final String location = (activity['location'] as String?) ?? 'Unknown';
     
     // Date formatting
-    String month = 'OCT';
-    String day = '12';
+    String month = 'TBA';
+    String day = '--';
+    String time = '';
+    
     if (activity['startDate'] != null) {
        try {
          DateTime date;
@@ -666,6 +765,7 @@ class _UpcomingEventCard extends StatelessWidget {
          }
          month = DateFormat('MMM').format(date).toUpperCase();
          day = DateFormat('d').format(date);
+         time = DateFormat('h:mm a').format(date);
        } catch (_) {}
     }
 
@@ -696,10 +796,16 @@ class _UpcomingEventCard extends StatelessWidget {
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
               child: SizedBox(
-                width: 80,
-                height: 80,
+                width: 90,
+                height: 90,
                 child: posterUrl.isNotEmpty
-                    ? Image.network(posterUrl, fit: BoxFit.cover)
+                    ? Image.network(
+                        posterUrl, 
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(color: Colors.grey[200], child: const Icon(Icons.broken_image, color: Colors.grey));
+                        },
+                      )
                     : Container(color: Colors.grey[200], child: const Icon(Icons.image, color: Colors.grey)),
               ),
             ),
@@ -719,10 +825,22 @@ class _UpcomingEventCard extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
+                  if (time.isNotEmpty)
+                    Row(
+                      children: [
+                        const Icon(Icons.access_time_rounded, size: 14, color: Color(0xFFFF6B9D)),
+                        const SizedBox(width: 4),
+                        Text(
+                          time,
+                          style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+                        ),
+                      ],
+                    ),
+                  const SizedBox(height: 4),
                   Row(
                     children: [
-                      const Icon(Icons.location_on_outlined, size: 14, color: Color(0xFF9CA3AF)),
+                      const Icon(Icons.location_on_outlined, size: 16, color: Color(0xFF9CA3AF)),
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(
@@ -734,6 +852,7 @@ class _UpcomingEventCard extends StatelessWidget {
                       ),
                     ],
                   ),
+                  const SizedBox(height: 12),
                 ],
               ),
             ),
@@ -749,7 +868,7 @@ class _UpcomingEventCard extends StatelessWidget {
                   Text(
                     day,
                     style: const TextStyle(
-                      fontSize: 16,
+                      fontSize: 18,
                       fontWeight: FontWeight.bold,
                       color: Color(0xFFFF6B9D),
                     ),
@@ -757,7 +876,7 @@ class _UpcomingEventCard extends StatelessWidget {
                   Text(
                     month,
                     style: const TextStyle(
-                      fontSize: 10,
+                      fontSize: 11,
                       fontWeight: FontWeight.w600,
                       color: Color(0xFFFF6B9D),
                     ),

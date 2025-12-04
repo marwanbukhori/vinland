@@ -355,37 +355,166 @@ class _CertificateCard extends StatelessWidget {
   }
 
   Future<void> _handleGenerate(BuildContext context, String activityTitle) async {
+    bool isDialogVisible = true;
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Generating...',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  GestureDetector(
+                    onTap: () {
+                      isDialogVisible = false;
+                      Navigator.pop(context);
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.close, size: 20, color: Colors.grey),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              const CircularProgressIndicator(color: Color(0xFFFF6B9D)),
+              const SizedBox(height: 24),
+              const Text(
+                'Creating your certificate',
+                style: TextStyle(color: Colors.grey),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
     try {
-      showDialog<void>(
-        context: context,
-        barrierDismissible: false,
-        builder: (BuildContext context) => const Center(child: CircularProgressIndicator()),
-      );
       final File certificateFile = await certificateService.generateCertificate(
         userName: userName,
         activityTitle: activityTitle,
         completionDate: DateTime.now(),
       );
-      if (!context.mounted) {
-        return;
+      
+      if (!context.mounted) return;
+      if (isDialogVisible) {
+        Navigator.pop(context); // Close loading dialog
       }
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Certificate saved to ${certificateFile.path}'),
-          action: SnackBarAction(
-            label: 'Share',
-            onPressed: () => Share.shareXFiles(<XFile>[XFile(certificateFile.path)]),
+      
+      showDialog(
+        context: context,
+        builder: (context) => Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Certificate Ready',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                    ),
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[100],
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.close, size: 20, color: Colors.grey),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE8F5E9),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.check_rounded, color: Color(0xFF27AE60), size: 32),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Certificate generated successfully!',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 16),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Saved to documents',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Share.shareXFiles(<XFile>[XFile(certificateFile.path)]);
+                    },
+                    icon: const Icon(Icons.share_rounded, size: 18),
+                    label: const Text('Share Certificate'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFFF6B9D),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       );
     } catch (error) {
-      if (!context.mounted) {
-        return;
+      if (!context.mounted) return;
+      if (isDialogVisible) {
+        Navigator.pop(context); // Close loading dialog
       }
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to generate certificate: $error')),
+      showDialog(
+        context: context,
+        builder: (context) => Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Error', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: const Icon(Icons.close, color: Colors.grey),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Text('Failed to generate certificate: $error'),
+              ],
+            ),
+          ),
+        ),
       );
     }
   }

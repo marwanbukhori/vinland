@@ -576,7 +576,16 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Activity QR Code', textAlign: TextAlign.center),
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text('Activity QR Code', textAlign: TextAlign.center),
+            GestureDetector(
+              onTap: () => Navigator.pop(context),
+              child: const Icon(Icons.close, color: Colors.grey, size: 20),
+            ),
+          ],
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -610,7 +619,16 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Scan to Check In', textAlign: TextAlign.center),
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text('Scan to Check In', textAlign: TextAlign.center),
+            GestureDetector(
+              onTap: () => Navigator.pop(context),
+              child: const Icon(Icons.close, color: Colors.grey, size: 20),
+            ),
+          ],
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -699,7 +717,16 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Attendance'),
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text('Attendance'),
+            GestureDetector(
+              onTap: () => Navigator.pop(context),
+              child: const Icon(Icons.close, color: Colors.grey, size: 20),
+            ),
+          ],
+        ),
         content: SizedBox(
           width: double.maxFinite,
           child: StreamBuilder<List<Map<String, dynamic>>>(
