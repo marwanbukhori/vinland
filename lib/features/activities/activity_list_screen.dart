@@ -14,6 +14,7 @@ import 'all_activities_screen.dart';
 import 'my_activities_screen.dart';
 import 'admin_dashboard.dart';
 import '../ranking/ranking_screen.dart';
+import 'scan_screen.dart';
 
 class ActivityListScreen extends StatefulWidget {
   const ActivityListScreen({super.key});
@@ -41,9 +42,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
         final List<Widget> screens = [
           const ActivitiesHomeView(),
           if (isOrganization) const AdminDashboard() else MyActivitiesView(userId: userId),
-          const RankingScreen(),
           const RewardsScreen(),
-          const CertificatesScreen(),
           const ProfileScreen(),
         ];
 
@@ -91,10 +90,8 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
               _buildNavItem(0, Icons.explore_rounded, 'Explore'),
               _buildNavItem(1, isOrganization ? Icons.dashboard_rounded : Icons.event_note_rounded, 
                 isOrganization ? 'Dashboard' : 'My Events'),
-              _buildNavItem(2, Icons.leaderboard_rounded, 'Ranking'),
-              _buildNavItem(3, Icons.card_giftcard_rounded, 'Rewards'),
-              _buildNavItem(4, Icons.workspace_premium_rounded, 'Certificates'),
-              _buildNavItem(5, Icons.person_rounded, 'Profile'),
+              _buildNavItem(2, Icons.card_giftcard_rounded, 'Rewards'),
+              _buildNavItem(3, Icons.person_rounded, 'Profile'),
             ],
           ),
         ),
@@ -180,7 +177,12 @@ class _ActivitiesHomeViewState extends State<ActivitiesHomeView> {
                     _buildCategories(),
                     
                     // Popular/Featured Section
-                    _buildSectionHeader('Popular Events', () {}),
+                    _buildSectionHeader('Popular Events', () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const AllActivitiesScreen()),
+                      );
+                    }),
                     _buildPopularEvents(),
                     
                     // All Activities Section
@@ -349,6 +351,20 @@ class _ActivitiesHomeViewState extends State<ActivitiesHomeView> {
             ),
           ),
           const SizedBox(width: 12),
+          GestureDetector(
+            onTap: () => _showQRScannerDialog(context),
+            child: Container(
+              height: 50,
+              width: 50,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFE0E0E0)),
+              ),
+              child: Icon(Icons.qr_code_scanner_rounded, color: const Color(0xFFFF6B9D), size: 24),
+            ),
+          ),
+          const SizedBox(width: 12),
           Container(
             height: 50,
             width: 50,
@@ -505,18 +521,35 @@ class _ActivitiesHomeViewState extends State<ActivitiesHomeView> {
                 color: Colors.black,
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: const Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.qr_code_scanner, color: Colors.white, size: 48),
-                    SizedBox(height: 16),
-                    Text(
-                      'Camera Scanner\n(Not available in this demo)',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.white70),
-                    ),
-                  ],
+              child: InkWell(
+                onTap: () async {
+                  // Open Scanner
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => QRScannerScreen()),
+                  );
+                  
+                  if (result != null && result is String) {
+                     codeController.text = result;
+                     // Auto submit
+                     if (context.mounted) {
+                       _handleScanSubmit(context, result);
+                     }
+                  }
+                },
+                child: const Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.qr_code_scanner, color: Colors.white, size: 48),
+                      SizedBox(height: 16),
+                      Text(
+                        'Tap to Scan',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.white70),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -568,6 +601,33 @@ class _ActivitiesHomeViewState extends State<ActivitiesHomeView> {
       ),
     );
   }
+
+  Future<void> _handleScanSubmit(BuildContext context, String code) async {
+     if (code.isNotEmpty) {
+        Navigator.pop(context); // Close dialog
+        // Fetch activity and navigate
+        try {
+          final activity = await _firestoreService.getActivity(code);
+          if (activity != null && context.mounted) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => ActivityDetailScreen(activity: activity)),
+            );
+          } else if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Activity not found')),
+            );
+          }
+        } catch (e) {
+             if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Error: $e')),
+                );
+             }
+        }
+     }
+  }
+
 }
 
 class _PopularEventCard extends StatelessWidget {

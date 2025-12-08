@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:share_plus/share_plus.dart';
+import 'scan_screen.dart';
 
 import '../../services/auth_service.dart';
 import '../../services/firestore_service.dart';
@@ -141,9 +143,34 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
               user: user,
               activityId: activityId,
               isCompleted: isCompleted,
+
               onShowAttendance: () => _showAttendanceDialog(context, firestoreService, activityId),
               onShowQR: () => _showActivityQRDialog(context, activityId, title),
               onScanQR: () => _showScanCheckInDialog(context, firestoreService, user?.uid, activityId),
+              onShowTicket: () => _showUserTicketDialog(context, user?.uid ?? '', user?.displayName ?? 'Volunteer'),
+              onScanTicket: () async {
+                 final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const QRScannerScreen()),
+                  );
+                  if (result != null && result is String && context.mounted) {
+                     // Check in the scanned user for this activity
+                     try {
+                        await firestoreService.checkInUserByActivity(result, activityId);
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Checked in user: $result')),
+                          );
+                        }
+                     } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Error: $e')),
+                          );
+                        }
+                     }
+                  }
+              },
             ),
           ),
         ],
@@ -208,9 +235,9 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
                   _buildCircleButton(
                     icon: Icons.share_rounded,
                     onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Sharing not implemented yet')),
-                      );
+                      final title = widget.activity['title'] ?? 'Activity';
+                      final location = widget.activity['location'] ?? 'Unknown Location';
+                      Share.share('Check out this activity: $title\n\nLocation: $location\n\nDownload Engage360 to join me!');
                     },
                   ),
                 ],
@@ -639,14 +666,30 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
                 color: Colors.black,
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: const Center(
+              child: InkWell(
+                onTap: () async {
+                  // Open Scanner
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => QRScannerScreen()),
+                  );
+                  
+                  if (result != null && result is String) {
+                     codeController.text = result;
+                     // Auto submit
+                     if (context.mounted) {
+                       _handleCheckInSubmit(context, firestoreService, userId, activityId, result);
+                     }
+                  }
+                },
+                child: const Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(Icons.qr_code_scanner, color: Colors.white, size: 48),
                     SizedBox(height: 16),
                     Text(
-                      'Scan Activity QR\n(Camera not available)',
+                      'Tap to Scan',
                       textAlign: TextAlign.center,
                       style: TextStyle(color: Colors.white70),
                     ),
@@ -654,6 +697,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
                 ),
               ),
             ),
+            ), // Close Container
             const SizedBox(height: 16),
             const Text('Or enter Activity ID manually:', style: TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
@@ -675,32 +719,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () async {
-              final String code = codeController.text.trim();
-              if (code.isNotEmpty && userId != null) {
-                if (code != activityId) {
-                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Invalid QR Code for this activity')),
-                  );
-                  return;
-                }
-                Navigator.pop(context);
-                try {
-                  await firestoreService.checkInUserByActivity(userId, activityId);
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Checked in successfully! +50 Points')),
-                    );
-                  }
-                } catch (e) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Error: $e')),
-                    );
-                  }
-                }
-              }
-            },
+            onPressed: () => _handleCheckInSubmit(context, firestoreService, userId, activityId, codeController.text.trim()),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFFF6B9D),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -772,6 +791,75 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
       ),
     );
   }
+  Future<void> _handleCheckInSubmit(BuildContext context, FirestoreService firestoreService, String? userId, String activityId, String code) async {
+      if (code.isNotEmpty && userId != null) {
+        if (code != activityId) {
+           ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Invalid QR Code. Please scan the Event QR.')),
+          );
+          return;
+        }
+        Navigator.pop(context); // Close dialog
+        try {
+          await firestoreService.checkInUserByActivity(userId, activityId);
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Checked in successfully! +50 Points')),
+            );
+          }
+        } catch (e) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Error: $e')),
+            );
+          }
+        }
+      }
+  }
+
+  void _showUserTicketDialog(BuildContext context, String userId, String userName) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text('My Ticket', textAlign: TextAlign.center),
+            GestureDetector(
+              onTap: () => Navigator.pop(context),
+              child: const Icon(Icons.close, color: Colors.grey, size: 20),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: 200,
+              height: 200,
+              child: QrImageView(
+                data: userId, // User ID is the ticket data for now
+                version: QrVersions.auto,
+                size: 200.0,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              userName,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Show this code to the organizer to check in.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey[600], fontSize: 12),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _JoinBottomBar extends StatelessWidget {
@@ -782,6 +870,8 @@ class _JoinBottomBar extends StatelessWidget {
   final VoidCallback onShowQR;
   final VoidCallback onScanQR;
   final VoidCallback onShowAttendance;
+  final VoidCallback onShowTicket;
+  final VoidCallback onScanTicket;
 
   const _JoinBottomBar({
     required this.firestoreService,
@@ -791,7 +881,26 @@ class _JoinBottomBar extends StatelessWidget {
     required this.onShowAttendance,
     required this.onShowQR,
     required this.onScanQR,
+    required this.onShowTicket,
+    required this.onScanTicket,
   });
+
+  // Helper to access showUserTicketDialog which is in the parent state...
+  // Since this is a stateless widget, we should pass the callback or move logic.
+  // Ideally, passes a callback for 'onShowTicket'.
+  // I will cheat slightly by finding the parent state or just duplicating the show dialog logic?
+  // No, clean way: I will add 'onMyTicket' callback.
+  // But I can't easily change the constructor signature without changing the call site.
+  // The call site is in the same file.
+  // I will just add the method to the class _ActivityDetailScreenState and pass another callback.
+  // Wait, I am editing the class _JoinBottomBar below.
+  // I'll update the constructor signature in a separate chunk.
+  
+  // Wait, I cannot change constructor in this chunk easily because I need to match the previous chunk.
+  // I will scroll up and fix the call site in _ActivityDetailScreenState build method first?
+  // Actually, I can use the context to find the User name?
+  // Let's modify the signature in the next chunk.
+
 
   @override
   Widget build(BuildContext context) {
@@ -846,17 +955,19 @@ class _JoinBottomBar extends StatelessWidget {
                   return Row(
                     children: [
                       Expanded(child: _buildButton(context, enabled: true, label: 'Show QR', onPressed: onShowQR)),
-                      const SizedBox(width: 12),
-                      Expanded(child: _buildButton(context, enabled: true, label: 'Attendance', onPressed: onShowAttendance)),
+                      const SizedBox(width: 8),
+                      Expanded(child: _buildButton(context, enabled: true, label: 'Scan', onPressed: onScanTicket)),
+                      const SizedBox(width: 8),
+                      Expanded(child: _buildButton(context, enabled: true, label: 'List', onPressed: onShowAttendance)),
                     ],
                   );
                 }
                 if (isJoined) {
                   return Row(
                     children: [
-                      Expanded(child: _buildButton(context, enabled: false, label: 'Joined')),
+                      Expanded(child: _buildButton(context, enabled: true, label: 'My Ticket', onPressed: onShowTicket)),
                       const SizedBox(width: 12),
-                      Expanded(child: _buildButton(context, enabled: true, label: 'Scan to Check In', onPressed: onScanQR)),
+                      Expanded(child: _buildButton(context, enabled: true, label: 'Scan Event', onPressed: onScanQR)),
                     ],
                   );
                 }

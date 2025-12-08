@@ -1,0 +1,83 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // --- Helper Functions ---
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+    // Checks if the user has the 'organization' role. 
+    // Note: This requires a document read, which counts towards quota.
+    function isOrg() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'organization';
+    }
+
+    // --- Users Collection ---
+    match /users/{userId} {
+      // Allow reading users (needed for Leaderboard, Admin Dashboard, Chat names)
+      allow read: if isAuthenticated();
+      
+      // Allow creation (Sign up)
+      allow create: if isAuthenticated();
+      
+      // Allow updates:
+      // - Users can update their own profile (join activities)
+      // - Organizations can update users (check-in awards points)
+      allow update: if isOwner(userId) || isOrg(); 
+
+      // Redeemed Vouchers Subcollection
+      match /redeemedVouchers/{voucherId} {
+        // Users can read and write their own voucher history
+        allow read, write: if isOwner(userId);
+      }
+    }
+
+    // --- Activities Collection ---
+    match /activities/{activityId} {
+      // Anyone can view activities
+      allow read: if true;
+      
+      // Only Organizations can create new activities
+      allow create: if isOrg();
+      
+      // Updates:
+      // - Volunteers need write access to 'join' (update participants array)
+      // - Orgs need write access to edit details
+      allow update: if isAuthenticated();
+      
+      // Only Orgs can delete
+      allow delete: if isOrg();
+
+      // Chat Messages
+      match /messages/{messageId} {
+        allow read, write: if isAuthenticated();
+      }
+      
+      // Reviews
+      match /reviews/{reviewId} {
+        allow read, write: if isAuthenticated();
+      }
+    }
+
+    // --- Registrations Collection ---
+    // Links users to activities
+    match /registrations/{registrationId} {
+      allow read: if isAuthenticated();
+      // Volunteers create registrations when joining
+      allow create: if isAuthenticated();
+      // Orgs update registrations when checking in
+      allow update: if isOrg();
+    }
+
+    // --- Vouchers Collection ---
+    // Rewards marketplace
+    match /vouchers/{voucherId} {
+      allow read: if true;
+      // Only Orgs can manage vouchers
+      allow write: if isOrg();
+    }
+  }
+}

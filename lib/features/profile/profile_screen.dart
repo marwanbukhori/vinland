@@ -8,6 +8,7 @@ import '../leaderboard/leaderboard_screen.dart';
 import '../rewards/rewards_screen.dart';
 import '../activities/admin_dashboard.dart';
 import 'edit_profile_screen.dart';
+import '../certificates/certificates_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   final bool isEmbedded;
@@ -369,12 +370,12 @@ class _ProfileViewState extends State<ProfileView> {
         const SizedBox(width: 12),
         Expanded(
           child: _ActionButton(
-            label: 'Rewards',
-            icon: Icons.card_giftcard_rounded,
+            label: 'Certificates',
+            icon: Icons.workspace_premium_rounded,
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const RewardsScreen()),
+                MaterialPageRoute(builder: (context) => const CertificatesScreen()),
               );
             },
           ),
@@ -382,6 +383,7 @@ class _ProfileViewState extends State<ProfileView> {
       ],
     );
   }
+
 
   // Widget _buildOrganizerActionButtons(BuildContext context) {
   //   return SizedBox(

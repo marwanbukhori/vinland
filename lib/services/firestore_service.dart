@@ -179,6 +179,30 @@ class FirestoreService {
     }
   }
 
+  Future<List<Map<String, dynamic>>> getActiveRegistrationsForUser(String userId) async {
+     // Get all registrations for user
+     final snapshot = await _db.collection('registrations')
+        .where('userId', isEqualTo: userId)
+        .get();
+        
+     List<Map<String, dynamic>> results = [];
+     for (var doc in snapshot.docs) {
+        final data = doc.data();
+        if (data['status'] == 'checked-in') continue;
+        
+        final activityId = data['activityId'];
+        final activityDoc = await _db.collection('activities').doc(activityId).get();
+        if (!activityDoc.exists) continue;
+        
+        // Check if activity is today (optional, but good for "Active")
+        // For now, return all pending
+        data['id'] = doc.id;
+        data['activityTitle'] = activityDoc.data()?['title'] ?? 'Unknown Activity';
+        results.add(data);
+     }
+     return results;
+  }
+
   // --- Leaderboard ---
   Stream<List<Map<String, dynamic>>> getLeaderboard() {
     return _db
@@ -209,6 +233,10 @@ class FirestoreService {
 
   Future<void> createVoucher(Map<String, dynamic> voucherData) async {
     await _db.collection('vouchers').add(voucherData);
+  }
+
+  Future<void> deleteVoucher(String voucherId) async {
+    await _db.collection('vouchers').doc(voucherId).delete();
   }
 
   Future<void> redeemVoucher(String userId, String voucherId, int cost) async {

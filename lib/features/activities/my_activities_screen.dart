@@ -16,6 +16,7 @@ class MyActivitiesView extends StatefulWidget {
 
 class _MyActivitiesViewState extends State<MyActivitiesView> {
   final FirestoreService _firestoreService = FirestoreService();
+  String _searchQuery = '';
   String _selectedCategory = 'All';
   final List<String> _categories = ['All', 'Community', 'Education', 'Healthcare', 'Environment', 'Other'];
 
@@ -38,6 +39,39 @@ class _MyActivitiesViewState extends State<MyActivitiesView> {
       body: SafeArea(
         child: Column(
           children: [
+            // Search Bar
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+              child: Container(
+                height: 50,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0xFFE0E0E0), width: 1),
+                ),
+                child: Row(
+                  children: [
+                    const SizedBox(width: 16),
+                    Icon(Icons.search, color: Colors.grey[400], size: 22),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextField(
+                        onChanged: (value) => setState(() => _searchQuery = value),
+                        decoration: InputDecoration(
+                          hintText: 'Search my activities',
+                          hintStyle: TextStyle(
+                            color: Colors.grey[400],
+                            fontSize: 15,
+                          ),
+                          border: InputBorder.none,
+                          contentPadding: const EdgeInsets.symmetric(vertical: 15),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
             // Category Filter
             SizedBox(
               height: 60,
@@ -106,8 +140,10 @@ class _MyActivitiesViewState extends State<MyActivitiesView> {
                       final myActivities = allActivities.where((activity) {
                         final activityId = activity['id'] as String?;
                         final category = activity['category'] as String? ?? 'Other';
+                        final title = (activity['title'] as String? ?? '').toLowerCase();
+                        final matchesSearch = title.contains(_searchQuery.toLowerCase());
                         final matchesCategory = _selectedCategory == 'All' || category == _selectedCategory;
-                        return activityId != null && joinedActivities.contains(activityId) && matchesCategory;
+                        return activityId != null && joinedActivities.contains(activityId) && matchesCategory && matchesSearch;
                       }).toList();
 
                       // Sort by nearest date

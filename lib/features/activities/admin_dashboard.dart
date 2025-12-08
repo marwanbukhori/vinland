@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'activity_create_screen.dart';
 import 'activity_detail_screen.dart';
+import 'scan_screen.dart';
 import '../rewards/rewards_screen.dart';
 import '../../services/firestore_service.dart';
 
@@ -83,6 +84,98 @@ class AdminDashboard extends StatelessWidget {
                 ),
               ],
             ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildActionButton(
+                    context,
+                    'Scan Attendee',
+                    Icons.qr_code_scanner_rounded,
+                    const Color(0xFF4CAF50),
+                    () async {
+                       // Generic Scan
+                       final result = await Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => QRScannerScreen()),
+                        );
+                        if (result != null && result is String && context.mounted) {
+                           final firestore = FirestoreService();
+                           // Check pending registrations
+                           try {
+                             final pending = await firestore.getActiveRegistrationsForUser(result);
+                             if (context.mounted) {
+                               if (pending.isEmpty) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('No pending check-ins found for this user.')),
+                                  );
+                               } else if (pending.length == 1) {
+                                  // Auto confirm
+                                  final reg = pending.first;
+                                  final bool? confirm = await showDialog<bool>(
+                                    context: context,
+                                    builder: (context) => AlertDialog(
+                                      title: const Text('Confirm Check-in'),
+                                      content: Text('Check in user to ${reg['activityTitle']}?'),
+                                      actions: [
+                                        TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+                                        ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Check In')),
+                                      ],
+                                    ),
+                                  );
+                                  if (confirm == true && context.mounted) {
+                                     await firestore.checkInUser(reg['id']);
+                                     ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text('Checked in successfully!')),
+                                     );
+                                  }
+                               } else {
+                                 // Pick one
+                                 showDialog(
+                                   context: context,
+                                   builder: (context) => AlertDialog(
+                                     title: const Text('Select Activity'),
+                                     content: SizedBox(
+                                       width: double.maxFinite,
+                                       child: ListView.builder(
+                                         shrinkWrap: true,
+                                         itemCount: pending.length,
+                                         itemBuilder: (context, index) {
+                                           final reg = pending[index];
+                                           return ListTile(
+                                             title: Text(reg['activityTitle']),
+                                             onTap: () async {
+                                               Navigator.pop(context);
+                                               await firestore.checkInUser(reg['id']);
+                                               if (context.mounted) {
+                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                    const SnackBar(content: Text('Checked in successfully!')),
+                                                  );
+                                               }
+                                             },
+                                           );
+                                         },
+                                       ),
+                                     ),
+                                   ),
+                                 );
+                               }
+                             }
+                           } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Error: $e')),
+                                );
+                              }
+                           }
+                        }
+                    },
+                  ),
+                ),
+                const SizedBox(width: 16),
+                const Spacer(),
+              ],
+            ),
             const SizedBox(height: 24),
 
             // Recent Activities
@@ -118,17 +211,34 @@ class AdminDashboard extends StatelessWidget {
         int totalActivities = 0;
         int totalParticipants = 0;
         int activeNow = 0;
+        int totalHours = 0;
 
         if (snapshot.hasData) {
           final docs = snapshot.data!.docs;
           totalActivities = docs.length;
+          final now = DateTime.now();
+          
           for (var doc in docs) {
             final data = doc.data() as Map<String, dynamic>;
-            totalParticipants += (data['participantsCount'] as int? ?? 0);
+            final int parts = (data['participantsCount'] as int? ?? 0);
+            totalParticipants += parts;
             
-            // Check if active
-            // Simple logic for now
-            activeNow++; 
+            // Calc Active
+            DateTime? start;
+            DateTime? end;
+            if (data['startDate'] is Timestamp) start = (data['startDate'] as Timestamp).toDate();
+            if (data['endDate'] is Timestamp) end = (data['endDate'] as Timestamp).toDate();
+            
+            if (start != null && end != null) {
+               if (now.isAfter(start) && now.isBefore(end)) {
+                 activeNow++;
+               }
+               // Calc Hours (Potential hours served by all participants)
+               final hours = end.difference(start).inHours;
+               if (hours > 0) {
+                 totalHours += hours * parts;
+               }
+            }
           }
         }
 
@@ -142,8 +252,8 @@ class AdminDashboard extends StatelessWidget {
           children: [
             _buildStatCard('Total Activities', '$totalActivities', Icons.event_note_rounded, const Color(0xFFFFE5EE), const Color(0xFFFF6B9D)),
             _buildStatCard('Total Volunteers', '$totalParticipants', Icons.people_outline_rounded, const Color(0xFFE5EEFF), const Color(0xFF6B9DFF)),
-            _buildStatCard('Hours Served', '128', Icons.access_time_rounded, const Color(0xFFE5FFEA), const Color(0xFF4CAF50)), // Mock data
-            _buildStatCard('Avg. Rating', '4.8', Icons.star_outline_rounded, const Color(0xFFFFF8E5), const Color(0xFFFFC107)), // Mock data
+            _buildStatCard('Est. Hours Served', '$totalHours', Icons.access_time_rounded, const Color(0xFFE5FFEA), const Color(0xFF4CAF50)),
+            _buildStatCard('Avg. Rating', 'N/A', Icons.star_outline_rounded, const Color(0xFFFFF8E5), const Color(0xFFFFC107)),
           ],
         );
       },
