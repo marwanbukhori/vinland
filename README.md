@@ -1,74 +1,79 @@
 # Engage360 - Volunteer Management Mobile App
 
-A Flutter-based mobile application for managing volunteer activities, built with Firebase backend services.
+A Flutter-based mobile application for managing volunteer activities, built with Firebase backend services. It connects organizations with volunteers, gamifies participation, and streamlines activity management.
 
 ## Features
 
 ### Implemented ✅
-- **Authentication**: Email/Password login and registration with role selection (Volunteer/Organization)
-- **User Management**: User profiles stored in Firestore with points and activity tracking
-- **Activity Management**:
-  - Organizations can create volunteer activities with images
-  - Volunteers can browse and join activities
-  - Real-time activity updates
-  - Activity posters using Firebase Storage
-- **Gamification**: Points system for volunteer participation
-- **Profile Screen**: View user stats, points, and joined activities
-- **Certificate Generation**: Generate and share PDF certificates for completed activities
-- **Firebase Integration**: Authentication, Firestore, and Storage
+
+#### For Volunteers
+- **Authentication**: Email/Password login and registration.
+- **Activity Browsing**: View "Popular" and "Upcoming" activities with live status (Upcoming, In Progress, Completed).
+- **Check-in System**: 
+  - Scan QR Codes to check in.
+  - Enter unique 6-digit Activity PIN manually.
+  - Real-time status updates (Registered -> Checked In).
+- **Gamification**: Earn points (+50) for checking in.
+- **Rewards**: Redeem points for vouchers/rewards.
+- **Community Chat**: Real-time group chat for each activity.
+- **Profile**: View stats, points, and joined activities.
+
+#### For Organizations (Admins)
+- **Admin Dashboard**: 
+  - View key metrics (Total Activities, Total Participants, Active Events).
+  - Manage "Your Activities" (Create, Edit, Delete).
+- **Activity Management**: 
+  - Create activities with location, dates, and posters.
+  - Generate unique 6-digit access codes for manual check-in.
+  - Monitor participant counts.
+- **Rewards Management**: Create and manage vouchers for volunteers.
+- **Data Isolation**: Admins see only their own organization's data.
 
 ### Planned 🚧
-- **Messaging**: Real-time chat between users
-- **Push Notifications**: Activity reminders and updates via FCM
-- **Leaderboard**: Top volunteers ranking
-- **Activity Completion Tracking**: Mark activities as completed with automatic point awards
+- **Push Notifications**: Activity reminders via FCM.
+- **Leaderboard**: Global ranking of top volunteers.
+- **Advanced Analytics**: Deeper insights for organizations.
 
 ## Tech Stack
 
 - **Frontend**: Flutter (Dart)
-- **Backend**: Firebase (Free Tier)
-  - Firebase Authentication
-  - Cloud Firestore
-  - Firebase Storage
-  - Firebase Cloud Messaging (planned)
-- **State Management**: Provider
+- **Backend**: Firebase
+  - **Authentication**: User management (Volunteer/Organization roles).
+  - **Cloud Firestore**: Real-time database for activities, users, chats, and registrations.
+  - **Firebase Storage**: Image hosting (Posters, Avatars).
+- **State Management**: Provider & StreamBuilder for real-time updates.
 
 ## Project Structure
 
 ```
 lib/
 ├── features/
-│   ├── auth/
-│   │   ├── login_screen.dart
-│   │   └── register_screen.dart
-│   ├── activities/
-│   │   ├── activity_list_screen.dart
-│   │   ├── activity_detail_screen.dart
-│   │   └── activity_create_screen.dart
-│   ├── profile/
-│   ├── messaging/
-│   ├── certificates/
-│   └── rewards/
+│   ├── auth/           # Login & Registration
+│   ├── activities/     # Activity Listing, Details, Creation, Editing & Dashboard
+│   ├── profile/        # User Profile & Stats
+│   ├── community/      # Group Chat logic
+│   ├── rewards/        # Voucher system
+│   └── certificates/   # Certificate generation (WIP)
 ├── services/
-│   ├── auth_service.dart
-│   ├── firestore_service.dart
-│   └── storage_service.dart
-├── utils/
-└── main.dart
+│   ├── auth_service.dart      # Firebase Auth wrapper
+│   ├── firestore_service.dart # Database logic
+│   └── storage_service.dart   # File upload logic
+└── main.dart           # Entry point & Routing
 ```
 
 ## Setup Instructions
 
 ### Prerequisites
-- Flutter SDK installed
-- Firebase CLI installed
-- Firebase project created
+- Flutter SDK (3.x+)
+- Firebase CLI
+- Valid Firebase Project
 
 ### Installation
 
-1. **Clone the repository** (if applicable)
+1. **Clone the repository**
    ```bash
-   cd /Users/muhdmarwan/2030/engage360
+   git clone <repo_url>
+   cd engage360
    ```
 
 2. **Install dependencies**
@@ -77,138 +82,57 @@ lib/
    ```
 
 3. **Configure Firebase**
+   Use FlutterFire CLI to connect your project:
    ```bash
-   export PATH="$PATH":"$HOME/.pub-cache/bin"
-   flutterfire configure --project=engage360-fd4fa --platforms=android
+   flutterfire configure --project=<your-project-id>
    ```
 
-4. **Run the app**
+4. **Deploy Security Rules**
+   Ensure your Firestore rules allow self-check-in:
+   ```bash
+   firebase deploy --only firestore:rules
+   ```
+
+5. **Run the app**
    ```bash
    flutter run
    ```
 
-## Firebase Setup
+## Firestore Schema & Security
 
-### Firestore Collections
+The app uses a robust Firestore schema with security rules enforcing:
+- **Users**: Read-only for public (basic info), Write for owner.
+- **Activities**: Public read, Org-only write.
+- **Registrations**: User can create (join) and update (self check-in via app logic). Org can manage.
+- **Vouchers**: Public read, Org-only write.
 
-#### `users`
-```json
-{
-  "name": "string",
-  "email": "string",
-  "role": "volunteer | organization",
-  "phone": "string",
-  "points": 0,
-  "profilePhotoUrl": "string",
-  "joinedActivities": [],
-  "createdAt": "timestamp"
-}
-```
-
-#### `activities`
-```json
-{
-  "title": "string",
-  "description": "string",
-  "location": "string",
-  "startDate": "timestamp",
-  "organizationId": "string",
-  "posterUrl": "string",
-  "createdAt": "timestamp"
-}
-```
-
-#### `registrations`
-```json
-{
-  "userId": "string",
-  "activityId": "string",
-  "status": "registered | completed",
-  "timestamp": "timestamp"
-}
-```
-
-### Security Rules (To be configured in Firebase Console)
-
+### Sample Rules
 ```javascript
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    // Users can read all, but only update their own
-    match /users/{userId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth.uid == userId;
-    }
-
-    // Activities
-    match /activities/{activityId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null;
-      allow update, delete: if request.auth != null;
-    }
-
-    // Registrations
-    match /registrations/{registrationId} {
-      allow read, write: if request.auth != null;
-    }
-  }
+match /registrations/{registrationId} {
+  allow read, create: if request.auth != null;
+  // Allow users to update their own check-in status
+  allow update: if request.auth != null && (resource.data.userId == request.auth.uid || isOrg());
 }
 ```
 
-## Usage
+## Usage Guide
 
-### For Volunteers
-1. Register with email/password and select "VOLUNTEER" role
-2. Browse available activities
-3. Tap on an activity to view details
-4. Join activities to earn points
+### Volunteer Flow
+1. **Join**: Browse activities -> Click "Join". Status becomes "Registered".
+2. **Check-in**: At event, click "Scan Event" or enter the 6-digit code provided by the organizer.
+3. **Earn**: Status updates to "Checked In" (Green badge). Points are awarded immediately.
+4. **Reward**: Go to Rewards tab -> Redeem vouchers using points.
 
-### For Organizations
-1. Register with email/password and select "ORGANIZATION" role
-2. Tap the "+" button to create new activities
-3. Fill in activity details (title, description, location)
-4. Submit to publish the activity
-
-## Development
-
-### Run in Debug Mode
-```bash
-flutter run
-```
-
-### Build APK (Android)
-```bash
-flutter build apk
-```
-
-### Analyze Code
-```bash
-flutter analyze
-```
-
-## Next Steps
-
-1. **Enable Firestore in Firebase Console**
-   - Go to Firebase Console → Firestore Database
-   - Create database in production mode
-   - Apply security rules
-
-2. **Implement Messaging**
-   - Create chat screens
-   - Set up Firestore listeners for real-time messages
-
-3. **Add Push Notifications**
-   - Configure FCM
-   - Implement notification service
-
-4. **Certificate Generation**
-   - Use `pdf` package to generate certificates
-   - Upload to Firebase Storage
+### Organization Flow
+1. **Dashboard**: See overview of active events.
+2. **Create**: Tap '+' FAB -> Enter details -> Activity is live.
+3. **Manage**: Click "See All" in Dashboard to edit existing activities.
+4. **Verify**: Provide the 6-digit "Activity Code" (visible in Activity Details) to volunteers for manual check-in.
 
 ## License
 
-This project is created for educational purposes.
+This project is created for educational purposes. 
 
 ## Contact
 
-For questions or support, please contact the development team.
+For support, please contact the development team.
