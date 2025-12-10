@@ -29,6 +29,30 @@ class _CommunityChatScreenState extends State<CommunityChatScreen> {
     super.dispose();
   }
 
+  String? _userName;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserData();
+  }
+
+  Future<void> _fetchUserData() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      try {
+        final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+        if (doc.exists && mounted) {
+           setState(() {
+             _userName = doc.data()?['name'];
+           });
+        }
+      } catch (e) {
+        debugPrint('Error fetching user data: $e');
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
@@ -201,7 +225,7 @@ class _CommunityChatScreenState extends State<CommunityChatScreen> {
                       onPressed: () async {
                         if (_chatController.text.isNotEmpty) {
                           try {
-                            final String userName = user.displayName ?? 'Volunteer'; 
+                            final String userName = _userName ?? user.displayName ?? 'Volunteer'; 
                             await _firestoreService.sendMessage(widget.activityId, user.uid, userName, _chatController.text);
                             _chatController.clear();
                             _scrollController.animateTo(
