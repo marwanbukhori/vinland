@@ -9,12 +9,17 @@ This guide details exactly how to set up the **Engage360** project from scratch,
 Before cloning the code, ensure you have the necessary tools installed.
 
 ### A. Install Git
+- **Windows**:
+  1. Download the installer from [git-scm.com](https://git-scm.com/download/win).
+  2. Run the installer. Keep clicking "Next" to accept defaults.
+  3. **Verify**: Open **Command Prompt** (cmd) or **PowerShell** and run `git --version`.
 - **Mac**: `brew install git` (if using Homebrew) or download from [git-scm.com](https://git-scm.com/).
-- **Verify**: Run `git --version` in terminal.
 
 ### B. Install Flutter SDK
 1. Download the Flutter SDK for your OS from [flutter.dev](https://docs.flutter.dev/get-started/install).
 2. Extract the file and update your `PATH` variable.
+   - **Windows**: Extract to `C:\src\flutter`. Search for "Edit the system environment variables" -> Environment Variables -> Path -> Edit -> New -> Add `C:\src\flutter\bin`.
+   - **Mac/Linux**: Add to your shell config (`.zshrc` or `.bashrc`).
 3. **Verify**: Run `flutter doctor`. It will tell you what else is missing.
 
 ### C. Install Android Studio
