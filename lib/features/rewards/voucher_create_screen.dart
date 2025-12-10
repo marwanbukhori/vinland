@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../../services/firestore_service.dart';
 
@@ -97,6 +98,8 @@ class _VoucherCreateScreenState extends State<VoucherCreateScreen> {
           'description': description,
           'cost': cost,
           'imageUrl': imageUrl,
+          'imageUrl': imageUrl,
+          'createdBy': FirebaseAuth.instance.currentUser?.uid,
           'createdAt': DateTime.now().toIso8601String(),
         });
         if (mounted) {

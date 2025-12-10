@@ -1,11 +1,15 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'activity_create_screen.dart';
+import 'activity_edit_screen.dart';
 import 'activity_detail_screen.dart';
+import 'all_activities_screen.dart';
 import 'scan_screen.dart';
 import '../rewards/rewards_screen.dart';
 import '../../services/firestore_service.dart';
+import '../../services/auth_service.dart';
 
 class AdminDashboard extends StatelessWidget {
   const AdminDashboard({super.key});
@@ -30,6 +34,12 @@ class AdminDashboard extends StatelessWidget {
             icon: const Icon(Icons.notifications_none_rounded, color: Color(0xFF1A1A1A)),
             onPressed: () {},
           ),
+          // IconButton(
+          //   icon: const Icon(Icons.logout_rounded, color: Color(0xFFC62828)),
+          //   onPressed: () async {
+          //     await AuthService().signOut();
+          //   },
+          // ),
         ],
       ),
       body: SingleChildScrollView(
@@ -191,7 +201,15 @@ class AdminDashboard extends StatelessWidget {
                   ),
                 ),
                 TextButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    final user = FirebaseAuth.instance.currentUser;
+                    if (user != null) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => AllActivitiesScreen(creatorId: user.uid)),
+                      );
+                    }
+                  },
                   child: const Text('See All'),
                 ),
               ],
@@ -205,8 +223,14 @@ class AdminDashboard extends StatelessWidget {
   }
 
   Widget _buildStatsGrid() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return const Center(child: Text('Please log in'));
+
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance.collection('activities').snapshots(),
+      stream: FirebaseFirestore.instance
+          .collection('activities')
+          .where('createdBy', isEqualTo: user.uid)
+          .snapshots(),
       builder: (context, snapshot) {
         int totalActivities = 0;
         int totalParticipants = 0;
@@ -331,11 +355,14 @@ class AdminDashboard extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               label,
+              textAlign: TextAlign.center,
               style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
-                fontSize: 14,
+                fontSize: 13,
               ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),
@@ -344,8 +371,15 @@ class AdminDashboard extends StatelessWidget {
   }
 
   Widget _buildRecentActivities() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return const SizedBox();
+
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance.collection('activities').limit(5).snapshots(),
+      stream: FirebaseFirestore.instance
+          .collection('activities')
+          .where('createdBy', isEqualTo: user.uid)
+          .limit(5)
+          .snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
@@ -404,8 +438,10 @@ class AdminDashboard extends StatelessWidget {
                     IconButton(
                       icon: const Icon(Icons.edit_outlined, color: Color(0xFF666666)),
                       onPressed: () {
-                        // Navigate to edit (Not implemented yet)
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Edit not implemented yet')));
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => ActivityEditScreen(activity: activity)),
+                        );
                       },
                     ),
                     IconButton(

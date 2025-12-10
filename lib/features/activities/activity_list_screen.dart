@@ -39,20 +39,29 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
         final String role = snapshot.data?.data()?['role'] ?? 'volunteer';
         final bool isOrganization = role == 'organization';
 
-        final List<Widget> screens = [
-          const ActivitiesHomeView(),
-          if (isOrganization) const AdminDashboard() else MyActivitiesView(userId: userId),
-          const RewardsScreen(),
-          const ProfileScreen(),
-        ];
+        final List<Widget> screens;
+        if (isOrganization) {
+           screens = [
+             const AdminDashboard(),
+             const RewardsScreen(),
+             const ProfileScreen(),
+           ];
+        } else {
+           screens = [
+             const ActivitiesHomeView(),
+             MyActivitiesView(userId: userId),
+             const RewardsScreen(),
+             const ProfileScreen(),
+           ];
+        }
 
         return Scaffold(
           body: IndexedStack(
-            index: _currentIndex,
+            index: _currentIndex < screens.length ? _currentIndex : 0,
             children: screens,
           ),
           bottomNavigationBar: _buildBottomNav(isOrganization),
-          floatingActionButton: isOrganization && _currentIndex == 1 // Show on Dashboard tab
+          floatingActionButton: isOrganization && _currentIndex == 0 // Dashboard is 0 for Admin
               ? FloatingActionButton(
                   onPressed: () {
                     Navigator.push(
@@ -61,6 +70,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                     );
                   },
                   backgroundColor: const Color(0xFFFF6B9D),
+                  heroTag: 'admin_create_activity_fab',
                   child: const Icon(Icons.add),
                 )
               : null,
@@ -70,6 +80,23 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
   }
 
   Widget _buildBottomNav(bool isOrganization) {
+    List<Widget> navItems;
+
+    if (isOrganization) {
+      navItems = [
+        _buildNavItem(0, Icons.dashboard_rounded, 'Dashboard'),
+        _buildNavItem(1, Icons.card_giftcard_rounded, 'Rewards'),
+        _buildNavItem(2, Icons.person_rounded, 'Profile'),
+      ];
+    } else {
+      navItems = [
+        _buildNavItem(0, Icons.explore_rounded, 'Explore'),
+        _buildNavItem(1, Icons.event_note_rounded, 'My Events'),
+        _buildNavItem(2, Icons.card_giftcard_rounded, 'Rewards'),
+        _buildNavItem(3, Icons.person_rounded, 'Profile'),
+      ];
+    }
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -86,13 +113,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildNavItem(0, Icons.explore_rounded, 'Explore'),
-              _buildNavItem(1, isOrganization ? Icons.dashboard_rounded : Icons.event_note_rounded, 
-                isOrganization ? 'Dashboard' : 'My Events'),
-              _buildNavItem(2, Icons.card_giftcard_rounded, 'Rewards'),
-              _buildNavItem(3, Icons.person_rounded, 'Profile'),
-            ],
+            children: navItems,
           ),
         ),
       ),

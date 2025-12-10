@@ -1,36 +1,35 @@
 import 'dart:io';
 
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
-import '../../services/firestore_service.dart';
 import '../../services/storage_service.dart';
 
-/// Modernized creator for volunteer activities.
-class ActivityCreateScreen extends StatefulWidget {
-  const ActivityCreateScreen({super.key});
+class ActivityEditScreen extends StatefulWidget {
+  final Map<String, dynamic> activity;
+
+  const ActivityEditScreen({super.key, required this.activity});
 
   @override
-  State<ActivityCreateScreen> createState() => _ActivityCreateScreenState();
+  State<ActivityEditScreen> createState() => _ActivityEditScreenState();
 }
 
-class _ActivityCreateScreenState extends State<ActivityCreateScreen> {
+class _ActivityEditScreenState extends State<ActivityEditScreen> {
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
-  final FirestoreService firestoreService = FirestoreService();
   final StorageService storageService = StorageService();
   final ImagePicker picker = ImagePicker();
 
-  String title = '';
-  String description = '';
-  String location = '';
-  String category = 'Community'; // Default
+  late String title;
+  late String description;
+  late String location;
+  late String category;
+  late DateTime startDate;
+  late DateTime endDate;
+  String? existingImageUrl;
   File? selectedImage;
   bool isSubmitting = false;
-
-  DateTime startDate = DateTime.now().add(const Duration(days: 1));
-  DateTime endDate = DateTime.now().add(const Duration(days: 1, hours: 3));
 
   final List<String> _categories = [
     'Community',
@@ -40,6 +39,41 @@ class _ActivityCreateScreenState extends State<ActivityCreateScreen> {
     'Fundraising',
     'Other'
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize with existing data
+    title = widget.activity['title'] ?? '';
+    description = widget.activity['description'] ?? '';
+    location = widget.activity['location'] ?? '';
+    category = widget.activity['category'] ?? 'Community';
+    existingImageUrl = widget.activity['posterUrl'];
+
+    if (!_categories.contains(category)) {
+      category = 'Other';
+    }
+
+    try {
+      if (widget.activity['startDate'] is Timestamp) {
+        startDate = (widget.activity['startDate'] as Timestamp).toDate();
+      } else {
+        startDate = DateTime.parse(widget.activity['startDate']);
+      }
+    } catch (_) {
+      startDate = DateTime.now();
+    }
+
+    try {
+      if (widget.activity['endDate'] is Timestamp) {
+        endDate = (widget.activity['endDate'] as Timestamp).toDate();
+      } else {
+        endDate = DateTime.parse(widget.activity['endDate']);
+      }
+    } catch (_) {
+      endDate = DateTime.now().add(const Duration(hours: 3));
+    }
+  }
 
   Future<void> _pickImage() async {
     final XFile? pickedFile = await picker.pickImage(
@@ -61,7 +95,7 @@ class _ActivityCreateScreenState extends State<ActivityCreateScreen> {
     final DateTime? pickedDate = await showDatePicker(
       context: context,
       initialDate: initialDate,
-      firstDate: DateTime.now(),
+      firstDate: DateTime(2020),
       lastDate: DateTime.now().add(const Duration(days: 365)),
       builder: (context, child) {
         return Theme(
@@ -107,7 +141,6 @@ class _ActivityCreateScreenState extends State<ActivityCreateScreen> {
           );
           if (isStart) {
             startDate = newDateTime;
-            // Ensure end date is after start date
             if (endDate.isBefore(startDate)) {
               endDate = startDate.add(const Duration(hours: 3));
             }
@@ -128,19 +161,15 @@ class _ActivityCreateScreenState extends State<ActivityCreateScreen> {
     });
 
     try {
-      String? imageUrl;
+      String? imageUrl = existingImageUrl;
       if (selectedImage != null) {
         imageUrl = await storageService.uploadImage(
           selectedImage!,
           'activities/${DateTime.now().millisecondsSinceEpoch}.jpg',
         );
       }
-      
-      final DateTime now = DateTime.now();
 
-      final String activityCode = (100000 + DateTime.now().millisecondsSinceEpoch % 900000).toString();
-      
-      await firestoreService.addActivity(<String, dynamic>{
+      await FirebaseFirestore.instance.collection('activities').doc(widget.activity['id']).update({
         'title': title,
         'description': description,
         'location': location,
@@ -148,19 +177,19 @@ class _ActivityCreateScreenState extends State<ActivityCreateScreen> {
         'posterUrl': imageUrl ?? '',
         'startDate': startDate.toIso8601String(),
         'endDate': endDate.toIso8601String(),
-        'createdAt': now,
-        'createdBy': FirebaseAuth.instance.currentUser?.uid,
-        'activityCode': activityCode,
-        'participantsCount': 0,
-        'participants': [],
       });
 
       if (mounted) {
-        _showSuccessDialog(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Activity updated successfully!')),
+        );
+        Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
-        _showErrorDialog(context, e.toString());
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
       }
     } finally {
       if (mounted) {
@@ -169,75 +198,6 @@ class _ActivityCreateScreenState extends State<ActivityCreateScreen> {
         });
       }
     }
-  }
-
-  void _showSuccessDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: const [
-              Icon(Icons.check_circle_outline, color: Color(0xFF27AE60), size: 60),
-              SizedBox(height: 16),
-              Text('Activity Published!', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-              SizedBox(height: 8),
-              Text('Your activity is now live for volunteers to join.', textAlign: TextAlign.center),
-            ],
-          ),
-          actions: [
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context); // Close dialog
-                  Navigator.pop(context); // Close screen
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFFF6B9D),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                child: const Text('Done'),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _showErrorDialog(BuildContext context, String message) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Column(
-            children: [
-              Icon(Icons.error_outline, color: Color(0xFFEB5757), size: 60),
-              SizedBox(height: 10),
-              Text('Submission Failed', style: TextStyle(fontWeight: FontWeight.bold)),
-            ],
-          ),
-          content: Text(
-            message,
-            textAlign: TextAlign.center,
-          ),
-          actions: <Widget>[
-            SizedBox(
-              width: double.infinity,
-              child: TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Try Again', style: TextStyle(color: Color(0xFFFF6B9D))),
-              ),
-            ),
-          ],
-        );
-      },
-    );
   }
 
   @override
@@ -266,7 +226,7 @@ class _ActivityCreateScreenState extends State<ActivityCreateScreen> {
           ),
         ),
         title: const Text(
-          'Create Activity',
+          'Edit Activity',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
@@ -283,33 +243,22 @@ class _ActivityCreateScreenState extends State<ActivityCreateScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Text(
-                  'Design a memorable experience',
-                  style: Theme.of(context).textTheme.headlineMedium,
-                ),
-                const SizedBox(height: 6),
-                const Text(
-                  'Tell volunteers what makes this activity special.',
-                  style: TextStyle(color: Color(0xFF9698A9)),
-                ),
-                const SizedBox(height: 24),
                 _buildPosterPicker(),
                 const SizedBox(height: 24),
                 _buildTextField(
                   label: 'Activity Title',
-                  hint: 'Beach cleanup with the community',
+                  initialValue: title,
                   onChanged: (String value) => setState(() => title = value),
                   validator: (String? value) => value == null || value.isEmpty ? 'Title is required' : null,
                 ),
                 const SizedBox(height: 18),
                 _buildTextField(
                   label: 'Location',
-                  hint: 'Port Klang Waterfront',
+                  initialValue: location,
                   onChanged: (String value) => setState(() => location = value),
                   validator: (String? value) => value == null || value.isEmpty ? 'Location is required' : null,
                 ),
                 const SizedBox(height: 18),
-                // Category Dropdown
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -339,7 +288,6 @@ class _ActivityCreateScreenState extends State<ActivityCreateScreen> {
                   ],
                 ),
                 const SizedBox(height: 18),
-                // Date Pickers
                 Row(
                   children: [
                     Expanded(
@@ -362,7 +310,7 @@ class _ActivityCreateScreenState extends State<ActivityCreateScreen> {
                 const SizedBox(height: 18),
                 _buildTextField(
                   label: 'Description',
-                  hint: 'Share the story, roles, and impact your volunteers will make.',
+                  initialValue: description,
                   maxLines: 4,
                   onChanged: (String value) => setState(() => description = value),
                   validator: (String? value) => value == null || value.isEmpty ? 'Description is required' : null,
@@ -378,7 +326,7 @@ class _ActivityCreateScreenState extends State<ActivityCreateScreen> {
                             width: 22,
                             child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                           )
-                        : const Text('Publish Activity'),
+                        : const Text('Save Changes'),
                   ),
                 ),
               ],
@@ -435,7 +383,6 @@ class _ActivityCreateScreenState extends State<ActivityCreateScreen> {
       onTap: _pickImage,
       child: Container(
         width: double.infinity,
-        padding: selectedImage == null ? const EdgeInsets.all(40) : EdgeInsets.zero,
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(24),
@@ -448,74 +395,52 @@ class _ActivityCreateScreenState extends State<ActivityCreateScreen> {
             ),
           ],
         ),
-        child: selectedImage == null
-            ? Column(
-                children: <Widget>[
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: AspectRatio(
+            aspectRatio: 16 / 9,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                if (selectedImage != null)
+                  Image.file(selectedImage!, fit: BoxFit.cover)
+                else if (existingImageUrl != null && existingImageUrl!.isNotEmpty)
+                  Image.network(existingImageUrl!, fit: BoxFit.cover)
+                else
                   Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFEEF2),
-                      shape: BoxShape.circle,
-                    ),
+                    color: const Color(0xFFFFEEF2),
                     child: const Icon(Icons.add_photo_alternate_rounded, size: 40, color: Color(0xFFFF6B9D)),
                   ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Upload cover poster',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 16,
-                      color: Color(0xFF1F1F1F),
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  const Text(
-                    'Min 1200x1200px, JPG or PNG',
-                    style: TextStyle(
-                      color: Color(0xFF9698A9),
-                      fontSize: 13,
-                    ),
-                  ),
-                ],
-              )
-            : ClipRRect(
-                borderRadius: BorderRadius.circular(24),
-                child: AspectRatio(
-                  aspectRatio: 16 / 9,
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      Image.file(selectedImage!, fit: BoxFit.cover),
-                      Positioned(
-                        top: 12,
-                        right: 12,
-                        child: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.1),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: const Icon(Icons.edit, color: Color(0xFFFF6B9D), size: 20),
+                Positioned(
+                  top: 12,
+                  right: 12,
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
+                    child: const Icon(Icons.edit, color: Color(0xFFFF6B9D), size: 20),
                   ),
                 ),
-              ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
 
   Widget _buildTextField({
     required String label,
-    required String hint,
+    String? initialValue,
     required ValueChanged<String> onChanged,
     String? Function(String?)? validator,
     int maxLines = 1,
@@ -533,10 +458,9 @@ class _ActivityCreateScreenState extends State<ActivityCreateScreen> {
         ),
         const SizedBox(height: 8),
         TextFormField(
+          initialValue: initialValue,
           maxLines: maxLines,
-          decoration: InputDecoration(
-            hintText: hint,
-          ),
+          decoration: const InputDecoration(), // Uses theme defaults
           validator: validator,
           onChanged: onChanged,
         ),

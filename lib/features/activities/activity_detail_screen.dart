@@ -301,6 +301,29 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
+          if (user != null && widget.activity['createdBy'] == user.uid && widget.activity['activityCode'] != null)
+            Container(
+              width: double.infinity,
+              margin: const EdgeInsets.only(bottom: 24),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF3E0),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFFFB74D)),
+              ),
+              child: Column(
+                children: [
+                  const Text('ADMIN ACCESS CODE', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFFF57C00))),
+                  const SizedBox(height: 4),
+                  Text(
+                    widget.activity['activityCode'],
+                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: 4, color: Color(0xFFE65100)),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text('Share this code for manual check-in', style: TextStyle(fontSize: 12, color: Color(0xFFE65100))),
+                ],
+              ),
+            ),
           // Header: Category & Status
           Row(
             children: [
@@ -792,10 +815,12 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
     );
   }
   Future<void> _handleCheckInSubmit(BuildContext context, FirestoreService firestoreService, String? userId, String activityId, String code) async {
+      final String? activityCode = widget.activity['activityCode'];
+
       if (code.isNotEmpty && userId != null) {
-        if (code != activityId) {
+        if (code != activityId && code != activityCode) {
            ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Invalid QR Code. Please scan the Event QR.')),
+            const SnackBar(content: Text('Invalid QR Code or Access Code.')),
           );
           return;
         }
@@ -1015,12 +1040,15 @@ class _JoinBottomBar extends StatelessWidget {
           ),
           elevation: 0,
         ),
-        child: Text(
-          label,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
           ),
         ),
       ),

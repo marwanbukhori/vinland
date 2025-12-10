@@ -10,9 +10,20 @@ class AuthService with ChangeNotifier {
 
   User? get user => _user;
 
+  String? _role;
+  String? get role => _role;
+
   AuthService() {
-    _auth.authStateChanges().listen((User? user) {
+    _auth.authStateChanges().listen((User? user) async {
       _user = user;
+      if (user != null) {
+        DocumentSnapshot doc = await _firestore.collection('users').doc(user.uid).get();
+        if (doc.exists) {
+          _role = (doc.data() as Map<String, dynamic>)['role'];
+        }
+      } else {
+        _role = null;
+      }
       notifyListeners();
     });
   }

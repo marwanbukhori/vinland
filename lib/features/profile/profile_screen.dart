@@ -84,6 +84,7 @@ class _ProfileViewState extends State<ProfileView> {
         final String email = (data['email'] as String?) ?? 'No Email';
         final String role = (data['role'] as String?) ?? 'volunteer';
         final int points = (data['points'] as int?) ?? 0;
+        final double rating = (data['rating'] as num?)?.toDouble() ?? 0.0;
         final List<String> joinedActivities = List<String>.from(
           data['joinedActivities'] ?? <String>[],
         );
@@ -102,7 +103,7 @@ class _ProfileViewState extends State<ProfileView> {
                     
                     // Stats Row
                     if (isOrganizer)
-                      _buildOrganizerStats(context, userId)
+                      _buildOrganizerStats(context, userId, rating)
                     else
                       _buildUserStats(context, points, joinedActivities.length),
                     
@@ -188,7 +189,7 @@ class _ProfileViewState extends State<ProfileView> {
       // Fetch activities created by this org
       final snapshot = await FirebaseFirestore.instance
           .collection('activities')
-          .where('organizationId', isEqualTo: userId)
+          .where('createdBy', isEqualTo: userId)
           .get();
       final activities = snapshot.docs.map((d) => d.data()).toList();
       _sortActivities(activities);
@@ -319,9 +320,9 @@ class _ProfileViewState extends State<ProfileView> {
     );
   }
 
-  Widget _buildOrganizerStats(BuildContext context, String userId) {
+  Widget _buildOrganizerStats(BuildContext context, String userId, double rating) {
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance.collection('activities').where('organizationId', isEqualTo: userId).snapshots(),
+      stream: FirebaseFirestore.instance.collection('activities').where('createdBy', isEqualTo: userId).snapshots(),
       builder: (context, snapshot) {
         int count = 0;
         if (snapshot.hasData) {
@@ -341,7 +342,7 @@ class _ProfileViewState extends State<ProfileView> {
             Expanded(
               child: _StatCard(
                 title: 'Rating',
-                value: '4.8', // Mock
+                value: rating == 0 ? 'N/A' : rating.toStringAsFixed(1),
                 icon: Icons.star_rounded,
                 color: const Color(0xFFFFC107),
               ),
@@ -383,7 +384,6 @@ class _ProfileViewState extends State<ProfileView> {
       ],
     );
   }
-
 
   // Widget _buildOrganizerActionButtons(BuildContext context) {
   //   return SizedBox(

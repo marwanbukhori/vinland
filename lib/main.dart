@@ -6,6 +6,7 @@ import 'features/activities/activity_list_screen.dart';
 import 'features/auth/login_screen.dart';
 import 'features/profile/profile_screen.dart';
 import 'firebase_options.dart';
+import 'features/activities/admin_dashboard.dart';
 import 'services/auth_service.dart';
 
 void main() async {
@@ -48,6 +49,7 @@ class Wrapper extends StatelessWidget {
     if (authService.user == null) {
       return const LoginScreen();
     }
+    
     return const ActivityListScreen();
   }
 }

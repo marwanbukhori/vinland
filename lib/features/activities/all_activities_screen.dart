@@ -6,7 +6,8 @@ import '../../services/firestore_service.dart';
 import 'activity_detail_screen.dart';
 
 class AllActivitiesScreen extends StatefulWidget {
-  const AllActivitiesScreen({super.key});
+  final String? creatorId;
+  const AllActivitiesScreen({super.key, this.creatorId});
 
   @override
   State<AllActivitiesScreen> createState() => _AllActivitiesScreenState();
@@ -31,7 +32,7 @@ class _AllActivitiesScreenState extends State<AllActivitiesScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFFAFAFA),
       appBar: AppBar(
-        title: const Text('All Activities'),
+        title: Text(widget.creatorId != null ? 'Your Activities' : 'All Activities'),
         backgroundColor: Colors.white,
         elevation: 0,
       ),
@@ -63,7 +64,13 @@ class _AllActivitiesScreenState extends State<AllActivitiesScreen> {
                       title.contains(_searchQuery.toLowerCase());
                   final bool matchesCategory = _selectedCategory == 'All' ||
                       category.toLowerCase() == _selectedCategory.toLowerCase();
-                  return matchesSearch && matchesCategory;
+                  
+                  bool matchesCreator = true;
+                  if (widget.creatorId != null) {
+                    matchesCreator = (activity['createdBy'] == widget.creatorId);
+                  }
+
+                  return matchesSearch && matchesCategory && matchesCreator;
                 }).toList();
 
                 if (activities.isEmpty) {
