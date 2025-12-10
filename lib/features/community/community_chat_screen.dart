@@ -40,12 +40,17 @@ class _CommunityChatScreenState extends State<CommunityChatScreen> {
   Future<void> _fetchUserData() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
+      debugPrint('Fetching user data for: ${user.uid}');
       try {
         final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+        debugPrint('User doc exists: ${doc.exists}');
         if (doc.exists && mounted) {
+           final data = doc.data();
+           debugPrint('User data: $data');
            setState(() {
-             _userName = doc.data()?['name'];
+             _userName = data?['name'];
            });
+           debugPrint('Set _userName to: $_userName');
         }
       } catch (e) {
         debugPrint('Error fetching user data: $e');
