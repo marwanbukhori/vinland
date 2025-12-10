@@ -121,6 +121,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
                             spots: spotsStr,
                             activityId: activityId,
                             user: user,
+                            firestoreService: firestoreService,
                           ),
                         ),
                       ),
@@ -283,6 +284,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
     required String spots,
     required String activityId,
     required User? user,
+    required FirestoreService firestoreService,
   }) {
     return Container(
       width: double.infinity,
@@ -344,17 +346,77 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
                 ),
               ),
               const Spacer(),
-              if (isCompleted)
+              if (user != null)
+                StreamBuilder<Map<String, dynamic>?>(
+                  stream: firestoreService.getUserRegistrationStream(user.uid, activityId),
+                  builder: (context, snapshot) {
+                    final data = snapshot.data;
+                    final bool isRegistered = data != null; // If doc exists, they are registered
+                    final bool isCheckedIn = data != null && data['status'] == 'checked-in';
+
+                    if (isCheckedIn) {
+                      return Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE8F5E9),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Text(
+                          'CHECKED IN',
+                          style: TextStyle(
+                            color: Color(0xFF27AE60),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 10,
+                          ),
+                        ),
+                      );
+                    } else if (isRegistered) {
+                      return Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFF3E0),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Text(
+                          'REGISTERED',
+                          style: TextStyle(
+                            color: Color(0xFFFF9800),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 10,
+                          ),
+                        ),
+                      );
+                    } else if (isCompleted) {
+                      return Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEEEEEE),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Text(
+                          'COMPLETED',
+                          style: TextStyle(
+                            color: Color(0xFF9E9E9E),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 10,
+                          ),
+                        ),
+                      );
+                    }
+                    return const SizedBox();
+                  },
+                )
+              else if (isCompleted)
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE8F5E9),
+                    color: const Color(0xFFEEEEEE),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Text(
                     'COMPLETED',
                     style: TextStyle(
-                      color: Color(0xFF27AE60),
+                      color: Color(0xFF9E9E9E),
                       fontWeight: FontWeight.bold,
                       fontSize: 10,
                     ),
@@ -815,31 +877,50 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
     );
   }
   Future<void> _handleCheckInSubmit(BuildContext context, FirestoreService firestoreService, String? userId, String activityId, String code) async {
-      final String? activityCode = widget.activity['activityCode'];
+    final String? activityCode = widget.activity['activityCode'];
 
-      if (code.isNotEmpty && userId != null) {
-        if (code != activityId && code != activityCode) {
-           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Invalid QR Code or Access Code.')),
-          );
-          return;
-        }
-        Navigator.pop(context); // Close dialog
-        try {
-          await firestoreService.checkInUserByActivity(userId, activityId);
-          if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Checked in successfully! +50 Points')),
-            );
-          }
-        } catch (e) {
-          if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Error: $e')),
-            );
-          }
-        }
+    if (code.isEmpty || userId == null) {
+      return;
+    }
+
+    // Validate Code
+    // Allow matching activityId OR activityCode
+    if (code != activityId && code != activityCode) {
+       ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Invalid Code. Please try again.')),
+      );
+      return;
+    }
+
+    // Show loading
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      await firestoreService.checkInUserByActivity(userId, activityId);
+      
+      if (context.mounted) {
+        Navigator.pop(context); // Pop loading
+        Navigator.pop(context); // Pop check-in dialog
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Checked in successfully! +50 Points'),
+            backgroundColor: Color(0xFF27AE60),
+          ),
+        );
       }
+    } catch (e) {
+      if (context.mounted) {
+        Navigator.pop(context); // Pop loading
+        // Don't pop check-in dialog, let them retry
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
   }
 
   void _showUserTicketDialog(BuildContext context, String userId, String userName) {
@@ -987,15 +1068,35 @@ class _JoinBottomBar extends StatelessWidget {
                     ],
                   );
                 }
+                
                 if (isJoined) {
-                  return Row(
-                    children: [
-                      Expanded(child: _buildButton(context, enabled: true, label: 'My Ticket', onPressed: onShowTicket)),
-                      const SizedBox(width: 12),
-                      Expanded(child: _buildButton(context, enabled: true, label: 'Scan Event', onPressed: onScanQR)),
-                    ],
+                  return StreamBuilder<Map<String, dynamic>?>(
+                    stream: firestoreService.getUserRegistrationStream(user!.uid, activityId),
+                    builder: (context, regSnapshot) {
+                      final regData = regSnapshot.data;
+                      final isCheckedIn = regData != null && regData['status'] == 'checked-in';
+
+                      if (isCheckedIn) {
+                        return _buildButton(
+                          context, 
+                          enabled: false, 
+                          label: 'Checked In', 
+                          backgroundColor: const Color(0xFF27AE60),
+                          textColor: Colors.white,
+                        );
+                      }
+
+                      return Row(
+                        children: [
+                          Expanded(child: _buildButton(context, enabled: true, label: 'My Ticket', onPressed: onShowTicket)),
+                          const SizedBox(width: 12),
+                          Expanded(child: _buildButton(context, enabled: true, label: 'Scan Event', onPressed: onScanQR)),
+                        ],
+                      );
+                    }
                   );
                 }
+
                 if (isCompleted) {
                    return _buildButton(context, enabled: false, label: 'Activity Completed');
                 }
@@ -1025,16 +1126,22 @@ class _JoinBottomBar extends StatelessWidget {
     );
   }
 
-  Widget _buildButton(BuildContext context, {required bool enabled, required String label, VoidCallback? onPressed}) {
+  Widget _buildButton(BuildContext context, {
+    required bool enabled, 
+    required String label, 
+    VoidCallback? onPressed,
+    Color? backgroundColor,
+    Color? textColor,
+  }) {
     return SizedBox(
       width: double.infinity,
       height: 56,
       child: ElevatedButton(
         onPressed: enabled ? onPressed : null,
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFFFF6B9D),
-          disabledBackgroundColor: const Color(0xFFF0F0F0),
-          disabledForegroundColor: const Color(0xFFAAAAAA),
+          backgroundColor: backgroundColor ?? const Color(0xFFFF6B9D),
+          disabledBackgroundColor: backgroundColor?.withOpacity(0.5) ?? const Color(0xFFF0F0F0),
+          disabledForegroundColor: textColor ?? const Color(0xFFAAAAAA),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
@@ -1044,10 +1151,10 @@ class _JoinBottomBar extends StatelessWidget {
           fit: BoxFit.scaleDown,
           child: Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: textColor ?? Colors.white,
             ),
           ),
         ),

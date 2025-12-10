@@ -179,6 +179,22 @@ class FirestoreService {
     }
   }
 
+  Stream<Map<String, dynamic>?> getUserRegistrationStream(String userId, String activityId) {
+    return _db
+        .collection('registrations')
+        .where('userId', isEqualTo: userId)
+        .where('activityId', isEqualTo: activityId)
+        .snapshots()
+        .map((snapshot) {
+      if (snapshot.docs.isNotEmpty) {
+        final data = snapshot.docs.first.data();
+        data['id'] = snapshot.docs.first.id;
+        return data;
+      }
+      return null;
+    });
+  }
+
   Future<List<Map<String, dynamic>>> getActiveRegistrationsForUser(String userId) async {
      // Get all registrations for user
      final snapshot = await _db.collection('registrations')
@@ -219,7 +235,7 @@ class FirestoreService {
       }).toList();
     });
   }
-
+  // 251685
   // --- Vouchers / Rewards ---
   Stream<List<Map<String, dynamic>>> getVouchers() {
     return _db.collection('vouchers').snapshots().map((snapshot) {

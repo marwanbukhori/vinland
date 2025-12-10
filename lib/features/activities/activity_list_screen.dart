@@ -836,18 +836,48 @@ class _UpcomingEventCard extends StatelessWidget {
     String day = '--';
     String time = '';
     
+    // Status Logic
+    DateTime? startDate;
+    DateTime? endDate;
+    String status = 'Upcoming';
+    Color statusColor = const Color(0xFF2196F3); // Blue
+    Color statusBg = const Color(0xFFE3F2FD);
+    
     if (activity['startDate'] != null) {
        try {
          DateTime date;
          if (activity['startDate'] is Timestamp) {
            date = (activity['startDate'] as Timestamp).toDate();
          } else {
-           date = DateTime.parse(activity['startDate']);
+           date = DateTime.parse(activity['startDate'].toString());
          }
+         startDate = date;
          month = DateFormat('MMM').format(date).toUpperCase();
          day = DateFormat('d').format(date);
          time = DateFormat('h:mm a').format(date);
        } catch (_) {}
+    }
+    if (activity['endDate'] != null) {
+       try {
+        if (activity['endDate'] is Timestamp) {
+          endDate = (activity['endDate'] as Timestamp).toDate();
+        } else {
+          endDate = DateTime.parse(activity['endDate'].toString());
+        }
+       } catch (_) {}
+    }
+
+    if (startDate != null) {
+      final now = DateTime.now();
+      if (endDate != null && now.isAfter(endDate!)) {
+        status = 'Completed';
+        statusColor = const Color(0xFF4CAF50); // Green
+        statusBg = const Color(0xFFE8F5E9);
+      } else if (now.isAfter(startDate!) && (endDate == null || now.isBefore(endDate!))) {
+        status = 'In Progress';
+        statusColor = const Color(0xFFFF9800); // Orange
+        statusBg = const Color(0xFFFFF3E0);
+      }
     }
 
     return GestureDetector(
@@ -896,6 +926,23 @@ class _UpcomingEventCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Status Badge
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: statusBg,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      status.toUpperCase(),
+                      style: TextStyle(
+                        color: statusColor,
+                        fontSize: 8,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
                   Text(
                     title,
                     style: const TextStyle(

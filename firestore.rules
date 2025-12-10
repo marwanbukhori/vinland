@@ -68,8 +68,8 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       // Volunteers create registrations when joining
       allow create: if isAuthenticated();
-      // Orgs update registrations when checking in
-      allow update: if isOrg();
+      // Allow users to update their own registration (for self check-in) or Orgs
+      allow update: if isAuthenticated() && (resource.data.userId == request.auth.uid || isOrg());
     }
 
     // --- Vouchers Collection ---
