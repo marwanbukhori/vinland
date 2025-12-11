@@ -34,7 +34,7 @@ class RankingScreen extends StatelessWidget {
               final user = users[index];
               final int rank = index + 1;
               final String name = user['name'] ?? 'Unknown';
-              final int points = user['points'] ?? 0;
+              final int points = user['lifetimePoints'] ?? user['points'] ?? 0;
               
               Color? rankColor;
               if (rank == 1) rankColor = const Color(0xFFFFD700); // Gold

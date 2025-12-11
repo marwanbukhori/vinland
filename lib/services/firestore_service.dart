@@ -139,6 +139,7 @@ class FirestoreService {
       // Award points (e.g., 50 points for checking in)
       transaction.update(userRef, {
         'points': FieldValue.increment(50),
+        'lifetimePoints': FieldValue.increment(50),
       });
     });
   }
@@ -224,7 +225,7 @@ class FirestoreService {
     return _db
         .collection('users')
         .where('role', isEqualTo: 'volunteer')
-        .orderBy('points', descending: true)
+        .orderBy('lifetimePoints', descending: true)
         .limit(50)
         .snapshots()
         .map((snapshot) {

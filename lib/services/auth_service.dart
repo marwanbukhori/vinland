@@ -57,6 +57,7 @@ class AuthService with ChangeNotifier {
         'email': email,
         'role': role,
         'points': 0,
+        'lifetimePoints': 0,
         'joinedActivities': [],
         'createdAt': FieldValue.serverTimestamp(),
       });
