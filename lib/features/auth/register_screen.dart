@@ -121,6 +121,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             _showErrorDialog(context);
                           }
                         } else {
+                          // Send verification email
+                          await authService.sendVerificationEmail();
+                          
                           if (context.mounted) {
                             _showSuccessDialog(context, name);
                           }
@@ -161,13 +164,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           title: const Column(
             children: [
-              Icon(Icons.check_circle_outline, color: Color(0xFF27AE60), size: 60),
+              Icon(Icons.mark_email_read_outlined, color: Color(0xFF27AE60), size: 60),
               SizedBox(height: 10),
-              Text('Welcome!', style: TextStyle(fontWeight: FontWeight.bold)),
+              Text('Verify Email', style: TextStyle(fontWeight: FontWeight.bold)),
             ],
           ),
           content: Text(
-            'Registration successful, $userName! You can now start exploring activities.',
+            'Registration successful, $userName!\n\nWe have sent a verification link to your email.\nPlease verify to continue.',
             textAlign: TextAlign.center,
           ),
           actions: <Widget>[

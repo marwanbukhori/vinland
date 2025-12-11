@@ -68,6 +68,24 @@ class AuthService with ChangeNotifier {
     }
   }
 
+  // Send Verification Email
+  Future<void> sendVerificationEmail() async {
+    User? user = _auth.currentUser;
+    if (user != null && !user.emailVerified) {
+      await user.sendEmailVerification();
+    }
+  }
+
+  // Reload user to refresh emailVerified status
+  Future<void> reloadUser() async {
+    User? user = _auth.currentUser;
+    if (user != null) {
+      await user.reload();
+      _user = _auth.currentUser;
+      notifyListeners();
+    }
+  }
+
   // Sign out
   Future<void> signOut() async {
     try {

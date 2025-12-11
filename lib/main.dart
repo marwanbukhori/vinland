@@ -8,6 +8,7 @@ import 'features/profile/profile_screen.dart';
 import 'firebase_options.dart';
 import 'features/activities/admin_dashboard.dart';
 import 'services/auth_service.dart';
+import 'features/auth/verify_email_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -39,6 +40,8 @@ class MyApp extends StatelessWidget {
   }
 }
 
+
+
 class Wrapper extends StatelessWidget {
   const Wrapper({super.key});
 
@@ -48,6 +51,11 @@ class Wrapper extends StatelessWidget {
 
     if (authService.user == null) {
       return const LoginScreen();
+    }
+    
+    // Check verification status
+    if (!authService.user!.emailVerified) {
+      return const VerifyEmailScreen();
     }
     
     return const ActivityListScreen();
