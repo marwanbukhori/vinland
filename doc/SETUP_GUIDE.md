@@ -80,11 +80,16 @@ This app relies on Firebase for Auth and Database. You must link it to your Fire
    ```
    *Note: This will generate `lib/firebase_options.dart`.*
 
-### B. Deploy Security Rules
+### 3. Deploy Security Rules
 The app enforces security rules for features like Self Check-in. You **must** deploy these rules:
-```bash
-firebase deploy --only firestore:rules
-```
+   ```bash
+   firebase deploy --only firestore:rules
+   ```
+
+### 4. Create Firestore Indexes
+   - As you use the app, you may see `FAILED_PRECONDITION` errors in the console with a link.
+   - **Click the link** to automatically create the required index in your Firebase Console.
+   - Specifically, you need an index for `users` (role ASC, lifetimePoints DESC).
 
 ---
 
