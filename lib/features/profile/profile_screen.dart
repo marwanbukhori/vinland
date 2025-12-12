@@ -339,14 +339,14 @@ class _ProfileViewState extends State<ProfileView> {
               ),
             ),
             const SizedBox(width: 16),
-            Expanded(
-              child: _StatCard(
-                title: 'Rating',
-                value: rating == 0 ? 'N/A' : rating.toStringAsFixed(1),
-                icon: Icons.star_rounded,
-                color: const Color(0xFFFFC107),
-              ),
-            ),
+            // Expanded(
+            //   child: _StatCard(
+            //     title: 'Rating',
+            //     value: rating == 0 ? 'N/A' : rating.toStringAsFixed(1),
+            //     icon: Icons.star_rounded,
+            //     color: const Color(0xFFFFC107),
+            //   ),
+            // ),
           ],
         );
       },

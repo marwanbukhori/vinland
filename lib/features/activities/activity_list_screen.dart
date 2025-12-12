@@ -386,15 +386,15 @@ class _ActivitiesHomeViewState extends State<ActivitiesHomeView> {
             ),
           ),
           const SizedBox(width: 12),
-          Container(
-            height: 50,
-            width: 50,
-            decoration: BoxDecoration(
-              color: const Color(0xFFFF6B9D),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(Icons.tune_rounded, color: Colors.white, size: 24),
-          ),
+          // Container(
+          //   height: 50,
+          //   width: 50,
+          //   decoration: BoxDecoration(
+          //     color: const Color(0xFFFF6B9D),
+          //     borderRadius: BorderRadius.circular(12),
+          //   ),
+          //   child: const Icon(Icons.tune_rounded, color: Colors.white, size: 24),
+          // ),
         ],
       ),
     );

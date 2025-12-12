@@ -277,7 +277,7 @@ class AdminDashboard extends StatelessWidget {
             _buildStatCard('Total Activities', '$totalActivities', Icons.event_note_rounded, const Color(0xFFFFE5EE), const Color(0xFFFF6B9D)),
             _buildStatCard('Total Volunteers', '$totalParticipants', Icons.people_outline_rounded, const Color(0xFFE5EEFF), const Color(0xFF6B9DFF)),
             _buildStatCard('Est. Hours Served', '$totalHours', Icons.access_time_rounded, const Color(0xFFE5FFEA), const Color(0xFF4CAF50)),
-            _buildStatCard('Avg. Rating', 'N/A', Icons.star_outline_rounded, const Color(0xFFFFF8E5), const Color(0xFFFFC107)),
+            // _buildStatCard('Avg. Rating', 'N/A', Icons.star_outline_rounded, const Color(0xFFFFF8E5), const Color(0xFFFFC107)),
           ],
         );
       },
