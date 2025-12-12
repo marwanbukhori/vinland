@@ -42,182 +42,213 @@ class AdminDashboard extends StatelessWidget {
           // ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Stats Grid
-            _buildStatsGrid(),
-            const SizedBox(height: 24),
+      body: StreamBuilder<DocumentSnapshot>(
+        stream: FirebaseAuth.instance.currentUser?.uid != null
+            ? FirebaseFirestore.instance.collection('users').doc(FirebaseAuth.instance.currentUser!.uid).snapshots()
+            : null,
+        builder: (context, snapshot) {
+          String userName = 'Organization';
+          if (snapshot.hasData && snapshot.data != null && snapshot.data!.exists) {
+            final data = snapshot.data!.data() as Map<String, dynamic>;
+            userName = data['name'] ?? 'Organization';
+          }
 
-            // Quick Actions
-            const Text(
-              'Quick Actions',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF1A1A1A),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Row(
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: _buildActionButton(
-                    context,
-                    'Create Activity',
-                    Icons.add_circle_outline_rounded,
-                    const Color(0xFFFF6B9D),
-                    () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const ActivityCreateScreen()),
-                      );
-                    },
+                // Welcome Message
+                Text(
+                  'Hi, $userName 👋',
+                  style: const TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1A1A1A),
                   ),
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _buildActionButton(
-                    context,
-                    'Manage Vouchers',
-                    Icons.card_giftcard_rounded,
-                    const Color(0xFF6B9DFF),
-                    () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const RewardsScreen()),
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildActionButton(
-                    context,
-                    'Scan Attendee',
-                    Icons.qr_code_scanner_rounded,
-                    const Color(0xFF4CAF50),
-                    () async {
-                       // Generic Scan
-                       final result = await Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => QRScannerScreen()),
-                        );
-                        if (result != null && result is String && context.mounted) {
-                           final firestore = FirestoreService();
-                           // Check pending registrations
-                           try {
-                             final pending = await firestore.getActiveRegistrationsForUser(result);
-                             if (context.mounted) {
-                               if (pending.isEmpty) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('No pending check-ins found for this user.')),
-                                  );
-                               } else if (pending.length == 1) {
-                                  // Auto confirm
-                                  final reg = pending.first;
-                                  final bool? confirm = await showDialog<bool>(
-                                    context: context,
-                                    builder: (context) => AlertDialog(
-                                      title: const Text('Confirm Check-in'),
-                                      content: Text('Check in user to ${reg['activityTitle']}?'),
-                                      actions: [
-                                        TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-                                        ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Check In')),
-                                      ],
-                                    ),
-                                  );
-                                  if (confirm == true && context.mounted) {
-                                     await firestore.checkInUser(reg['id']);
-                                     ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(content: Text('Checked in successfully!')),
-                                     );
-                                  }
-                               } else {
-                                 // Pick one
-                                 showDialog(
-                                   context: context,
-                                   builder: (context) => AlertDialog(
-                                     title: const Text('Select Activity'),
-                                     content: SizedBox(
-                                       width: double.maxFinite,
-                                       child: ListView.builder(
-                                         shrinkWrap: true,
-                                         itemCount: pending.length,
-                                         itemBuilder: (context, index) {
-                                           final reg = pending[index];
-                                           return ListTile(
-                                             title: Text(reg['activityTitle']),
-                                             onTap: () async {
-                                               Navigator.pop(context);
-                                               await firestore.checkInUser(reg['id']);
-                                               if (context.mounted) {
-                                                  ScaffoldMessenger.of(context).showSnackBar(
-                                                    const SnackBar(content: Text('Checked in successfully!')),
-                                                  );
-                                               }
-                                             },
-                                           );
-                                         },
-                                       ),
-                                     ),
-                                   ),
-                                 );
-                               }
-                             }
-                           } catch (e) {
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Error: $e')),
-                                );
-                              }
-                           }
-                        }
-                    },
-                  ),
-                ),
-                const SizedBox(width: 16),
-                const Spacer(),
-              ],
-            ),
-            const SizedBox(height: 24),
-
-            // Recent Activities
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
                 const Text(
-                  'Your Activities',
+                  'Welcome back to your dashboard',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Color(0xFF888888),
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // Stats Grid
+                _buildStatsGrid(),
+                const SizedBox(height: 24),
+
+                // Quick Actions
+                const Text(
+                  'Quick Actions',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                     color: Color(0xFF1A1A1A),
                   ),
                 ),
-                TextButton(
-                  onPressed: () {
-                    final user = FirebaseAuth.instance.currentUser;
-                    if (user != null) {
-                      Navigator.push(
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildActionButton(
                         context,
-                        MaterialPageRoute(builder: (context) => AllActivitiesScreen(creatorId: user.uid)),
-                      );
-                    }
-                  },
-                  child: const Text('See All'),
+                        'Create Activity',
+                        Icons.add_circle_outline_rounded,
+                        const Color(0xFFFF6B9D),
+                        () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const ActivityCreateScreen()),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _buildActionButton(
+                        context,
+                        'Manage Vouchers',
+                        Icons.card_giftcard_rounded,
+                        const Color(0xFF6B9DFF),
+                        () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const RewardsScreen()),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                 ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildActionButton(
+                        context,
+                        'Scan Attendee',
+                        Icons.qr_code_scanner_rounded,
+                        const Color(0xFF4CAF50),
+                        () async {
+                           // Generic Scan
+                           final result = await Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => QRScannerScreen()),
+                            );
+                            if (result != null && result is String && context.mounted) {
+                               final firestore = FirestoreService();
+                               // Check pending registrations
+                               try {
+                                 final pending = await firestore.getActiveRegistrationsForUser(result);
+                                 if (context.mounted) {
+                                   if (pending.isEmpty) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text('No pending check-ins found for this user.')),
+                                      );
+                                   } else if (pending.length == 1) {
+                                      // Auto confirm
+                                      final reg = pending.first;
+                                      final bool? confirm = await showDialog<bool>(
+                                        context: context,
+                                        builder: (context) => AlertDialog(
+                                          title: const Text('Confirm Check-in'),
+                                          content: Text('Check in user to ${reg['activityTitle']}?'),
+                                          actions: [
+                                            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+                                            ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Check In')),
+                                          ],
+                                        ),
+                                      );
+                                      if (confirm == true && context.mounted) {
+                                         await firestore.checkInUser(reg['id']);
+                                         ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(content: Text('Checked in successfully!')),
+                                         );
+                                      }
+                                   } else {
+                                     // Pick one
+                                     showDialog(
+                                       context: context,
+                                       builder: (context) => AlertDialog(
+                                         title: const Text('Select Activity'),
+                                         content: SizedBox(
+                                           width: double.maxFinite,
+                                           child: ListView.builder(
+                                             shrinkWrap: true,
+                                             itemCount: pending.length,
+                                             itemBuilder: (context, index) {
+                                               final reg = pending[index];
+                                               return ListTile(
+                                                 title: Text(reg['activityTitle']),
+                                                 onTap: () async {
+                                                   Navigator.pop(context);
+                                                   await firestore.checkInUser(reg['id']);
+                                                   if (context.mounted) {
+                                                      ScaffoldMessenger.of(context).showSnackBar(
+                                                        const SnackBar(content: Text('Checked in successfully!')),
+                                                      );
+                                                   }
+                                                 },
+                                               );
+                                             },
+                                           ),
+                                         ),
+                                       ),
+                                     );
+                                   }
+                                 }
+                               } catch (e) {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text('Error: $e')),
+                                    );
+                                  }
+                               }
+                            }
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    const Spacer(),
+                  ],
+                ),
+                const SizedBox(height: 24),
+
+                // Recent Activities
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Your Activities',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1A1A1A),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        final user = FirebaseAuth.instance.currentUser;
+                        if (user != null) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => AllActivitiesScreen(creatorId: user.uid)),
+                          );
+                        }
+                      },
+                      child: const Text('See All'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                _buildRecentActivities(),
               ],
             ),
-            const SizedBox(height: 16),
-            _buildRecentActivities(),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
