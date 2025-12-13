@@ -133,6 +133,7 @@ Once the Emulator is up and running on your screen:
 - **"GeneratedAppGlideModule not found"**: Run `flutter clean` then `flutter pub get`.
 - **"Permission Denied" in Firestore**: Ensure you ran the `firebase deploy` step above.
 - **Gradle Errors**: Ensure your Java version matches. Run `flutter doctor -v` to check the Java bundled with Android Studio.
+- **Notification Permissions**: On Android 13+, the app will request notification permissions on first launch. If denied, reminders will not work. Enable specific permissions in App Settings.
 
 ---
 

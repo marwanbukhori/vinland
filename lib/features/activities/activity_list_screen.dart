@@ -7,6 +7,7 @@ import '../../services/auth_service.dart';
 import '../../services/firestore_service.dart';
 import '../profile/profile_screen.dart';
 import '../certificates/certificates_screen.dart';
+import '../notifications/notification_screen.dart';
 import '../rewards/rewards_screen.dart';
 import 'activity_detail_screen.dart';
 import 'activity_create_screen.dart';
@@ -261,57 +262,9 @@ class _ActivitiesHomeViewState extends State<ActivitiesHomeView> {
               // Notification
               GestureDetector(
                 onTap: () {
-                  showDialog(
-                    context: context,
-                    builder: (context) => Dialog(
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                      child: Padding(
-                        padding: const EdgeInsets.all(20),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Text(
-                                  'Notifications',
-                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                                ),
-                                GestureDetector(
-                                  onTap: () => Navigator.pop(context),
-                                  child: Container(
-                                    padding: const EdgeInsets.all(4),
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey[100],
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: const Icon(Icons.close, size: 20, color: Colors.grey),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 32),
-                            const Icon(Icons.notifications_none_rounded, size: 64, color: Color(0xFFE0E0E0)),
-                            const SizedBox(height: 16),
-                            const Text(
-                              'No new notifications',
-                              style: TextStyle(
-                                color: Color(0xFF9E9E9E),
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            const Text(
-                              'We\'ll let you know when there are updates.',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(color: Color(0xFFBDBDBD), fontSize: 14),
-                            ),
-                            const SizedBox(height: 32),
-                          ],
-                        ),
-                      ),
-                    ),
+                   Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => NotificationScreen()),
                   );
                 },
                 child: Stack(

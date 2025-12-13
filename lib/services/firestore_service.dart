@@ -3,6 +3,39 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
+  // Notifications
+  Future<void> saveNotification({
+    required String userId,
+    required String title,
+    required String body,
+    required String type, // 'check-in', 'reminder', 'system'
+  }) async {
+    await _db.collection('users').doc(userId).collection('notifications').add({
+      'title': title,
+      'body': body,
+      'type': type,
+      'timestamp': FieldValue.serverTimestamp(),
+      'isRead': false,
+    });
+  }
+
+  Stream<List<Map<String, dynamic>>> getUserNotifications(String userId) {
+    return _db
+        .collection('users')
+        .doc(userId)
+        .collection('notifications')
+        .orderBy('timestamp', descending: true)
+        .limit(20)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        data['id'] = doc.id;
+        return data;
+      }).toList();
+    });
+  }
+
   // Get stream of activities
   Stream<List<Map<String, dynamic>>> getActivities() {
     return _db.collection('activities').snapshots().map((snapshot) {

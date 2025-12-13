@@ -16,10 +16,13 @@ A Flutter-based mobile application for managing volunteer activities, built with
 - **Gamification**: Earn points (+50) for checking in.
 - **Rewards**: Redeem points for vouchers/rewards.
 - **Community Chat**: Real-time group chat for each activity.
+- **In-App Notification Center**: View check-in history and system alerts.
+- **Local Reminders**: Get notified 1 hour before an activity starts.
 - **Profile**: View stats, points, and joined activities.
 
 #### For Organizations (Admins)
 - **Admin Dashboard**: 
+  - Personalized Welcome Message ("Hi, [Name]").
   - View key metrics (Total Activities, Total Participants, Active Events).
   - Manage "Your Activities" (Create, Edit, Delete).
 - **Activity Management**: 
@@ -30,7 +33,6 @@ A Flutter-based mobile application for managing volunteer activities, built with
 - **Data Isolation**: Admins see only their own organization's data.
 
 ### Planned 🚧
-- **Push Notifications**: Activity reminders via FCM.
 - **Leaderboard**: Global ranking of top volunteers.
 - **Advanced Analytics**: Deeper insights for organizations.
 

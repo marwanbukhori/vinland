@@ -10,6 +10,7 @@ import 'scan_screen.dart';
 import '../../services/auth_service.dart';
 import '../../services/firestore_service.dart';
 import '../community/community_chat_screen.dart';
+import '../../services/notification_service.dart';
 
 class ActivityDetailScreen extends StatefulWidget {
   final Map<String, dynamic> activity;
@@ -144,6 +145,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
               user: user,
               activityId: activityId,
               isCompleted: isCompleted,
+              startDate: startDateStr,
 
               onShowAttendance: () => _showAttendanceDialog(context, firestoreService, activityId),
               onShowQR: () => _showActivityQRDialog(context, activityId, title),
@@ -978,6 +980,7 @@ class _JoinBottomBar extends StatelessWidget {
   final VoidCallback onShowAttendance;
   final VoidCallback onShowTicket;
   final VoidCallback onScanTicket;
+  final String startDate;
 
   const _JoinBottomBar({
     required this.firestoreService,
@@ -989,6 +992,7 @@ class _JoinBottomBar extends StatelessWidget {
     required this.onScanQR,
     required this.onShowTicket,
     required this.onScanTicket,
+    required this.startDate,
   });
 
   // Helper to access showUserTicketDialog which is in the parent state...
@@ -1110,11 +1114,30 @@ class _JoinBottomBar extends StatelessWidget {
                       return;
                     }
                     await firestoreService.joinActivity(user!.uid, activityId);
+                    
+                    // Schedule Reminder (1 hour before)
+                    if (startDate.isNotEmpty) {
+                       try {
+                         final start = DateTime.parse(startDate);
+                         final reminderTime = start.subtract(const Duration(hours: 1));
+                         if (reminderTime.isAfter(DateTime.now())) {
+                           await NotificationService().scheduleNotification(
+                             id: activityId.hashCode, 
+                             title: 'Activity Reminder ⏰', 
+                             body: 'Your activity starts in 1 hour!', 
+                             scheduledTime: reminderTime
+                           );
+                         }
+                       } catch (e) {
+                         debugPrint('Error scheduling notification: $e');
+                       }
+                    }
+
                     if (!context.mounted) {
                       return;
                     }
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Joined successfully!')),
+                      const SnackBar(content: Text('Joined successfully! Reminder set.')),
                     );
                   },
                 );

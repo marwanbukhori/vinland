@@ -10,11 +10,19 @@ import 'features/activities/admin_dashboard.dart';
 import 'services/auth_service.dart';
 import 'features/auth/verify_email_screen.dart';
 
+import 'services/notification_service.dart';
+import 'features/notifications/check_in_listener.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  
+  // Initialize Notifications
+  await NotificationService().initialize();
+  await NotificationService().requestPermissions();
+  
   runApp(const MyApp());
 }
 
@@ -31,7 +39,7 @@ class MyApp extends StatelessWidget {
         title: 'Engage360',
         debugShowCheckedModeBanner: false,
         theme: _buildTheme(),
-        home: const Wrapper(),
+        home: const CheckInListener(child: Wrapper()),
         routes: {
           '/profile': (context) => const ProfileScreen(),
         },

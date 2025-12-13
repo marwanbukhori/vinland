@@ -70,6 +70,11 @@ graph TD
     P4 -->|Check Balance| D1
     P4 -->|Deduct Points| D1
     P4 -->|Read Voucher Cost| D4
+
+    %% Notifications
+    P3 -->|Trigger Notification| P5(5.0 Manage Notifications)
+    P5 -->|Save Alert| D5[(D5: Notifications)]
+    P5 -->|Push Alert| Vol
 ```
 
 ### Data Dictionary
@@ -77,3 +82,4 @@ graph TD
 - **Activities**: `id`, `title`, `description`, `location`, `startDate`, `participants`.
 - **Registrations**: `id`, `userId`, `activityId`, `status`, `timestamp`.
 - **Vouchers**: `id`, `title`, `cost`, `imageUrl`, `createdBy`.
+- **Notifications**: `id`, `userId`, `title`, `body`, `type`, `isRead`.
