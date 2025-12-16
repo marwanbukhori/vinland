@@ -1,0 +1,84 @@
+erDiagram
+    USERS ||--o{ REGISTRATIONS : "makes"
+    ACTIVITIES ||--o{ REGISTRATIONS : "has"
+    USERS ||--o{ ACTIVITIES : "creates (Organization)"
+    USERS ||--o{ REDEEMED_VOUCHERS : "redeems"
+    VOUCHERS ||--o{ REDEEMED_VOUCHERS : "referenced by"
+    ACTIVITIES ||--o{ MESSAGES : "contains"
+    USERS ||--o{ MESSAGES : "sends"
+    ACTIVITIES ||--o{ REVIEWS : "receives"
+    USERS ||--o{ REVIEWS : "writes"
+
+    USERS {
+        string id PK
+        string name
+        string email
+        string role "volunteer | organization"
+        number points
+        number lifetimePoints
+        string[] joinedActivities "List of Activity IDs"
+    }
+
+    USER_NOTIFICATIONS {
+        string title
+        string body
+        string type "check-in | reminder | system"
+        timestamp timestamp
+        boolean isRead
+    }
+    USERS ||--o{ USER_NOTIFICATIONS : "receives"
+
+    ACTIVITIES {
+        string id PK
+        string title
+        string description
+        string location
+        string category
+        string posterUrl
+        timestamp startDate
+        timestamp endDate
+        timestamp createdAt
+        string createdBy FK
+        string activityCode
+        number participantsCount
+        string[] participants "List of User IDs"
+    }
+
+    REGISTRATIONS {
+        string id PK
+        string userId FK
+        string activityId FK
+        string status "registered | checked-in | completed"
+        timestamp timestamp
+        timestamp checkInTime
+    }
+
+    VOUCHERS {
+        string id PK
+        string title
+        string description
+        number cost
+        string imageUrl
+        string createdBy FK
+        string createdAt
+    }
+
+    REDEEMED_VOUCHERS {
+        string voucherId FK
+        timestamp redeemedAt
+        string status "active | used | expired"
+    }
+
+    MESSAGES {
+        string userId FK
+        string userName
+        string message
+        timestamp timestamp
+    }
+
+    REVIEWS {
+        string userId FK
+        number rating
+        string comment
+        timestamp timestamp
+    }

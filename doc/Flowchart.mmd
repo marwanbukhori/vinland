@@ -1,0 +1,56 @@
+flowchart TD
+    Start((Start)) --> Wrapper
+    Wrapper{User Logged In?}
+    
+    %% Authentication Flow
+    Wrapper -- No --> LoginScreen
+    LoginScreen -->|Sign Up| RegisterScreen
+    RegisterScreen -->|Success| LoginScreen
+    LoginScreen -->|Success| Wrapper
+    
+    %% Email Verification
+    Wrapper -- Yes --> EmailCheck{Email Verified?}
+    EmailCheck -- No --> VerifyEmailScreen
+    VerifyEmailScreen -->|Verified| Wrapper
+    
+    %% Main App Flow
+    EmailCheck -- Yes --> RoleCheck{User Role?}
+    
+    %% Organization Flow
+    RoleCheck -- Organization --> OrgDiff[Admin Dashboard]
+    subgraph Organization_Mode
+        OrgDiff --> OrgTabs
+        OrgTabs[Bottom Navigation]
+        OrgTabs -->|Tab 0| AdminDashboard
+        OrgTabs -->|Tab 1| RewardsScreen
+        OrgTabs -->|Tab 2| ProfileScreen
+        
+        AdminDashboard -->|FAB| CreateActivity[Create Activity]
+    end
+    
+    %% Volunteer Flow
+    RoleCheck -- Volunteer --> VolDiff[Explore Home]
+    subgraph Volunteer_Mode
+        VolDiff --> VolTabs
+        VolTabs[Bottom Navigation]
+        VolTabs -->|Tab 0| Explore[Activities Home]
+        VolTabs -->|Tab 1| MyEvents[My Activities]
+        VolTabs -->|Tab 2| RewardsScreen
+        VolTabs -->|Tab 3| ProfileScreen
+        
+        Explore -->|Search/Filter| Explore
+        Explore -->|Select Activity| Detail[Activity Detail]
+        Explore -->|Scan QR| Scanner[QR Scanner]
+        
+        Detail -->|Join| Detail
+        Scanner -->|Code Found| Detail
+        
+        MyEvents -->|Select| Detail
+    end
+    
+    %% Profile & Common
+    ProfileScreen --> EditProfile[Edit Profile]
+    ProfileScreen --> Leaderboard[Leaderboard]
+    ProfileScreen --> Certificates[Certificates]
+    ProfileScreen --> Logout
+    Logout --> LoginScreen

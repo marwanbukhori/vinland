@@ -33,6 +33,11 @@ service cloud.firestore {
         // Users can read and write their own voucher history
         allow read, write: if isOwner(userId);
       }
+
+      // Notifications Subcollection
+      match /notifications/{notificationId} {
+        allow read, write: if isOwner(userId);
+      }
     }
 
     // --- Activities Collection ---
