@@ -37,7 +37,7 @@ class _ActivityEditScreenState extends State<ActivityEditScreen> {
     'Healthcare',
     'Environment',
     'Fundraising',
-    'Other'
+    'Other',
   ];
 
   @override
@@ -169,15 +169,18 @@ class _ActivityEditScreenState extends State<ActivityEditScreen> {
         );
       }
 
-      await FirebaseFirestore.instance.collection('activities').doc(widget.activity['id']).update({
-        'title': title,
-        'description': description,
-        'location': location,
-        'category': category,
-        'posterUrl': imageUrl ?? '',
-        'startDate': startDate.toIso8601String(),
-        'endDate': endDate.toIso8601String(),
-      });
+      await FirebaseFirestore.instance
+          .collection('activities')
+          .doc(widget.activity['id'])
+          .update({
+            'title': title,
+            'description': description,
+            'location': location,
+            'category': category,
+            'posterUrl': imageUrl ?? '',
+            'startDate': startDate.toIso8601String(),
+            'endDate': endDate.toIso8601String(),
+          });
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -187,9 +190,9 @@ class _ActivityEditScreenState extends State<ActivityEditScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     } finally {
       if (mounted) {
@@ -249,14 +252,18 @@ class _ActivityEditScreenState extends State<ActivityEditScreen> {
                   label: 'Activity Title',
                   initialValue: title,
                   onChanged: (String value) => setState(() => title = value),
-                  validator: (String? value) => value == null || value.isEmpty ? 'Title is required' : null,
+                  validator: (String? value) => value == null || value.isEmpty
+                      ? 'Title is required'
+                      : null,
                 ),
                 const SizedBox(height: 18),
                 _buildTextField(
                   label: 'Location',
                   initialValue: location,
                   onChanged: (String value) => setState(() => location = value),
-                  validator: (String? value) => value == null || value.isEmpty ? 'Location is required' : null,
+                  validator: (String? value) => value == null || value.isEmpty
+                      ? 'Location is required'
+                      : null,
                 ),
                 const SizedBox(height: 18),
                 Column(
@@ -282,7 +289,10 @@ class _ActivityEditScreenState extends State<ActivityEditScreen> {
                       onChanged: (val) => setState(() => category = val!),
                       decoration: const InputDecoration(
                         border: OutlineInputBorder(),
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 16,
+                        ),
                       ),
                     ),
                   ],
@@ -312,8 +322,11 @@ class _ActivityEditScreenState extends State<ActivityEditScreen> {
                   label: 'Description',
                   initialValue: description,
                   maxLines: 4,
-                  onChanged: (String value) => setState(() => description = value),
-                  validator: (String? value) => value == null || value.isEmpty ? 'Description is required' : null,
+                  onChanged: (String value) =>
+                      setState(() => description = value),
+                  validator: (String? value) => value == null || value.isEmpty
+                      ? 'Description is required'
+                      : null,
                 ),
                 const SizedBox(height: 28),
                 SizedBox(
@@ -324,7 +337,10 @@ class _ActivityEditScreenState extends State<ActivityEditScreen> {
                         ? const SizedBox(
                             height: 22,
                             width: 22,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
                           )
                         : const Text('Save Changes'),
                   ),
@@ -365,11 +381,19 @@ class _ActivityEditScreenState extends State<ActivityEditScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  DateFormat('MMM d, h:mm a').format(selectedDate),
-                  style: const TextStyle(fontSize: 16),
+                Flexible(
+                  child: Text(
+                    DateFormat('MMM d, h:mm a').format(selectedDate),
+                    style: const TextStyle(fontSize: 14),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-                const Icon(Icons.calendar_today, size: 18, color: Color(0xFF666666)),
+                const SizedBox(width: 8),
+                const Icon(
+                  Icons.calendar_today,
+                  size: 18,
+                  color: Color(0xFF666666),
+                ),
               ],
             ),
           ),
@@ -404,12 +428,17 @@ class _ActivityEditScreenState extends State<ActivityEditScreen> {
               children: [
                 if (selectedImage != null)
                   Image.file(selectedImage!, fit: BoxFit.cover)
-                else if (existingImageUrl != null && existingImageUrl!.isNotEmpty)
+                else if (existingImageUrl != null &&
+                    existingImageUrl!.isNotEmpty)
                   Image.network(existingImageUrl!, fit: BoxFit.cover)
                 else
                   Container(
                     color: const Color(0xFFFFEEF2),
-                    child: const Icon(Icons.add_photo_alternate_rounded, size: 40, color: Color(0xFFFF6B9D)),
+                    child: const Icon(
+                      Icons.add_photo_alternate_rounded,
+                      size: 40,
+                      color: Color(0xFFFF6B9D),
+                    ),
                   ),
                 Positioned(
                   top: 12,
@@ -427,7 +456,11 @@ class _ActivityEditScreenState extends State<ActivityEditScreen> {
                         ),
                       ],
                     ),
-                    child: const Icon(Icons.edit, color: Color(0xFFFF6B9D), size: 20),
+                    child: const Icon(
+                      Icons.edit,
+                      color: Color(0xFFFF6B9D),
+                      size: 20,
+                    ),
                   ),
                 ),
               ],

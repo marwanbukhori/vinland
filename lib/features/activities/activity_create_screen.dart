@@ -38,7 +38,7 @@ class _ActivityCreateScreenState extends State<ActivityCreateScreen> {
     'Healthcare',
     'Environment',
     'Fundraising',
-    'Other'
+    'Other',
   ];
 
   Future<void> _pickImage() async {
@@ -135,11 +135,12 @@ class _ActivityCreateScreenState extends State<ActivityCreateScreen> {
           'activities/${DateTime.now().millisecondsSinceEpoch}.jpg',
         );
       }
-      
+
       final DateTime now = DateTime.now();
 
-      final String activityCode = (100000 + DateTime.now().millisecondsSinceEpoch % 900000).toString();
-      
+      final String activityCode =
+          (100000 + DateTime.now().millisecondsSinceEpoch % 900000).toString();
+
       await firestoreService.addActivity(<String, dynamic>{
         'title': title,
         'description': description,
@@ -177,15 +178,27 @@ class _ActivityCreateScreenState extends State<ActivityCreateScreen> {
       barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: const [
-              Icon(Icons.check_circle_outline, color: Color(0xFF27AE60), size: 60),
+              Icon(
+                Icons.check_circle_outline,
+                color: Color(0xFF27AE60),
+                size: 60,
+              ),
               SizedBox(height: 16),
-              Text('Activity Published!', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+              Text(
+                'Activity Published!',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              ),
               SizedBox(height: 8),
-              Text('Your activity is now live for volunteers to join.', textAlign: TextAlign.center),
+              Text(
+                'Your activity is now live for volunteers to join.',
+                textAlign: TextAlign.center,
+              ),
             ],
           ),
           actions: [
@@ -198,7 +211,9 @@ class _ActivityCreateScreenState extends State<ActivityCreateScreen> {
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFFF6B9D),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
                 child: const Text('Done'),
               ),
@@ -214,24 +229,29 @@ class _ActivityCreateScreenState extends State<ActivityCreateScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           title: const Column(
             children: [
               Icon(Icons.error_outline, color: Color(0xFFEB5757), size: 60),
               SizedBox(height: 10),
-              Text('Submission Failed', style: TextStyle(fontWeight: FontWeight.bold)),
+              Text(
+                'Submission Failed',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
             ],
           ),
-          content: Text(
-            message,
-            textAlign: TextAlign.center,
-          ),
+          content: Text(message, textAlign: TextAlign.center),
           actions: <Widget>[
             SizedBox(
               width: double.infinity,
               child: TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text('Try Again', style: TextStyle(color: Color(0xFFFF6B9D))),
+                child: const Text(
+                  'Try Again',
+                  style: TextStyle(color: Color(0xFFFF6B9D)),
+                ),
               ),
             ),
           ],
@@ -299,14 +319,18 @@ class _ActivityCreateScreenState extends State<ActivityCreateScreen> {
                   label: 'Activity Title',
                   hint: 'Beach cleanup with the community',
                   onChanged: (String value) => setState(() => title = value),
-                  validator: (String? value) => value == null || value.isEmpty ? 'Title is required' : null,
+                  validator: (String? value) => value == null || value.isEmpty
+                      ? 'Title is required'
+                      : null,
                 ),
                 const SizedBox(height: 18),
                 _buildTextField(
                   label: 'Location',
                   hint: 'Port Klang Waterfront',
                   onChanged: (String value) => setState(() => location = value),
-                  validator: (String? value) => value == null || value.isEmpty ? 'Location is required' : null,
+                  validator: (String? value) => value == null || value.isEmpty
+                      ? 'Location is required'
+                      : null,
                 ),
                 const SizedBox(height: 18),
                 // Category Dropdown
@@ -333,7 +357,10 @@ class _ActivityCreateScreenState extends State<ActivityCreateScreen> {
                       onChanged: (val) => setState(() => category = val!),
                       decoration: const InputDecoration(
                         border: OutlineInputBorder(),
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 16,
+                        ),
                       ),
                     ),
                   ],
@@ -362,10 +389,14 @@ class _ActivityCreateScreenState extends State<ActivityCreateScreen> {
                 const SizedBox(height: 18),
                 _buildTextField(
                   label: 'Description',
-                  hint: 'Share the story, roles, and impact your volunteers will make.',
+                  hint:
+                      'Share the story, roles, and impact your volunteers will make.',
                   maxLines: 4,
-                  onChanged: (String value) => setState(() => description = value),
-                  validator: (String? value) => value == null || value.isEmpty ? 'Description is required' : null,
+                  onChanged: (String value) =>
+                      setState(() => description = value),
+                  validator: (String? value) => value == null || value.isEmpty
+                      ? 'Description is required'
+                      : null,
                 ),
                 const SizedBox(height: 28),
                 SizedBox(
@@ -376,7 +407,10 @@ class _ActivityCreateScreenState extends State<ActivityCreateScreen> {
                         ? const SizedBox(
                             height: 22,
                             width: 22,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
                           )
                         : const Text('Publish Activity'),
                   ),
@@ -417,11 +451,19 @@ class _ActivityCreateScreenState extends State<ActivityCreateScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  DateFormat('MMM d, h:mm a').format(selectedDate),
-                  style: const TextStyle(fontSize: 16),
+                Flexible(
+                  child: Text(
+                    DateFormat('MMM d, h:mm a').format(selectedDate),
+                    style: const TextStyle(fontSize: 14),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-                const Icon(Icons.calendar_today, size: 18, color: Color(0xFF666666)),
+                const SizedBox(width: 8),
+                const Icon(
+                  Icons.calendar_today,
+                  size: 18,
+                  color: Color(0xFF666666),
+                ),
               ],
             ),
           ),
@@ -435,7 +477,9 @@ class _ActivityCreateScreenState extends State<ActivityCreateScreen> {
       onTap: _pickImage,
       child: Container(
         width: double.infinity,
-        padding: selectedImage == null ? const EdgeInsets.all(40) : EdgeInsets.zero,
+        padding: selectedImage == null
+            ? const EdgeInsets.all(40)
+            : EdgeInsets.zero,
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(24),
@@ -457,7 +501,11 @@ class _ActivityCreateScreenState extends State<ActivityCreateScreen> {
                       color: const Color(0xFFFFEEF2),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.add_photo_alternate_rounded, size: 40, color: Color(0xFFFF6B9D)),
+                    child: const Icon(
+                      Icons.add_photo_alternate_rounded,
+                      size: 40,
+                      color: Color(0xFFFF6B9D),
+                    ),
                   ),
                   const SizedBox(height: 16),
                   const Text(
@@ -471,10 +519,7 @@ class _ActivityCreateScreenState extends State<ActivityCreateScreen> {
                   const SizedBox(height: 6),
                   const Text(
                     'Min 1200x1200px, JPG or PNG',
-                    style: TextStyle(
-                      color: Color(0xFF9698A9),
-                      fontSize: 13,
-                    ),
+                    style: TextStyle(color: Color(0xFF9698A9), fontSize: 13),
                   ),
                 ],
               )
@@ -502,7 +547,11 @@ class _ActivityCreateScreenState extends State<ActivityCreateScreen> {
                               ),
                             ],
                           ),
-                          child: const Icon(Icons.edit, color: Color(0xFFFF6B9D), size: 20),
+                          child: const Icon(
+                            Icons.edit,
+                            color: Color(0xFFFF6B9D),
+                            size: 20,
+                          ),
                         ),
                       ),
                     ],
@@ -534,9 +583,7 @@ class _ActivityCreateScreenState extends State<ActivityCreateScreen> {
         const SizedBox(height: 8),
         TextFormField(
           maxLines: maxLines,
-          decoration: InputDecoration(
-            hintText: hint,
-          ),
+          decoration: InputDecoration(hintText: hint),
           validator: validator,
           onChanged: onChanged,
         ),
