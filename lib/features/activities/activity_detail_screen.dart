@@ -36,30 +36,40 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
     final AuthService authService = Provider.of<AuthService>(context);
     final FirestoreService firestoreService = FirestoreService();
     final User? user = authService.user;
-    
+
     final String posterUrl = (widget.activity['posterUrl'] as String?) ?? '';
-    final String title = (widget.activity['title'] as String?) ?? 'Untitled Activity';
-    final String location = (widget.activity['location'] as String?) ?? 'No location';
-    final String description = (widget.activity['description'] as String?) ?? 'No description provided.';
+    final String title =
+        (widget.activity['title'] as String?) ?? 'Untitled Activity';
+    final String location =
+        (widget.activity['location'] as String?) ?? 'No location';
+    final String description =
+        (widget.activity['description'] as String?) ??
+        'No description provided.';
     final String activityId = (widget.activity['id'] as String?) ?? '';
-    final String organization = (widget.activity['organization'] as String?) ?? 'Community Organizer';
-    final String category = (widget.activity['category'] as String?) ?? 'General';
-    
+    final String organization =
+        (widget.activity['organization'] as String?) ?? 'Community Organizer';
+    final String category =
+        (widget.activity['category'] as String?) ?? 'General';
+
     // Safe Date Parsing
     String startDateStr = '';
     String endDateStr = '';
-    
+
     if (widget.activity['startDate'] != null) {
       if (widget.activity['startDate'] is Timestamp) {
-        startDateStr = (widget.activity['startDate'] as Timestamp).toDate().toIso8601String();
+        startDateStr = (widget.activity['startDate'] as Timestamp)
+            .toDate()
+            .toIso8601String();
       } else {
         startDateStr = widget.activity['startDate'].toString();
       }
     }
-    
+
     if (widget.activity['endDate'] != null) {
       if (widget.activity['endDate'] is Timestamp) {
-        endDateStr = (widget.activity['endDate'] as Timestamp).toDate().toIso8601String();
+        endDateStr = (widget.activity['endDate'] as Timestamp)
+            .toDate()
+            .toIso8601String();
       } else {
         endDateStr = widget.activity['endDate'].toString();
       }
@@ -68,28 +78,30 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
     // Determine Status
     bool isCompleted = false;
     String durationStr = 'TBA';
-    
+
     if (endDateStr.isNotEmpty) {
       try {
         final DateTime end = DateTime.parse(endDateStr);
         if (DateTime.now().isAfter(end)) {
           isCompleted = true;
         }
-        
+
         if (startDateStr.isNotEmpty) {
-           final DateTime start = DateTime.parse(startDateStr);
-           final diff = end.difference(start);
-           if (diff.inHours > 0) {
-             durationStr = '${diff.inHours} hrs';
-           } else {
-             durationStr = '${diff.inMinutes} mins';
-           }
+          final DateTime start = DateTime.parse(startDateStr);
+          final diff = end.difference(start);
+          if (diff.inHours > 0) {
+            durationStr = '${diff.inHours} hrs';
+          } else {
+            durationStr = '${diff.inMinutes} mins';
+          }
         }
       } catch (_) {}
     }
-    
-    final int participantsCount = (widget.activity['participantsCount'] as int?) ?? 0;
-    final int maxParticipants = (widget.activity['maxParticipants'] as int?) ?? 50;
+
+    final int participantsCount =
+        (widget.activity['participantsCount'] as int?) ?? 0;
+    final int maxParticipants =
+        (widget.activity['maxParticipants'] as int?) ?? 50;
     final int openSpots = maxParticipants - participantsCount;
     final String spotsStr = openSpots > 0 ? '$openSpots spots' : 'Full';
 
@@ -127,10 +139,18 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
                         ),
                       ),
                       if (isCompleted && user != null)
-                         Padding(
-                           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                           child: _buildFeedbackSection(context, firestoreService, activityId, user),
-                         ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 12,
+                          ),
+                          child: _buildFeedbackSection(
+                            context,
+                            firestoreService,
+                            activityId,
+                            user,
+                          ),
+                        ),
                       const SizedBox(height: 100), // Space for bottom bar
                     ],
                   ),
@@ -147,32 +167,47 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
               isCompleted: isCompleted,
               startDate: startDateStr,
 
-              onShowAttendance: () => _showAttendanceDialog(context, firestoreService, activityId),
+              onShowAttendance: () =>
+                  _showAttendanceDialog(context, firestoreService, activityId),
               onShowQR: () => _showActivityQRDialog(context, activityId, title),
-              onScanQR: () => _showScanCheckInDialog(context, firestoreService, user?.uid, activityId),
-              onShowTicket: () => _showUserTicketDialog(context, user?.uid ?? '', user?.displayName ?? 'Volunteer'),
+              onScanQR: () => _showScanCheckInDialog(
+                context,
+                firestoreService,
+                user?.uid,
+                activityId,
+              ),
+              onShowTicket: () => _showUserTicketDialog(
+                context,
+                user?.uid ?? '',
+                user?.displayName ?? 'Volunteer',
+              ),
               onScanTicket: () async {
-                 final result = await Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const QRScannerScreen()),
-                  );
-                  if (result != null && result is String && context.mounted) {
-                     // Check in the scanned user for this activity
-                     try {
-                        await firestoreService.checkInUserByActivity(result, activityId);
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Checked in user: $result')),
-                          );
-                        }
-                     } catch (e) {
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Error: $e')),
-                          );
-                        }
-                     }
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const QRScannerScreen(),
+                  ),
+                );
+                if (result != null && result is String && context.mounted) {
+                  // Check in the scanned user for this activity
+                  try {
+                    await firestoreService.checkInUserByActivity(
+                      result,
+                      activityId,
+                    );
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Checked in user: $result')),
+                      );
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(
+                        context,
+                      ).showSnackBar(SnackBar(content: Text('Error: $e')));
+                    }
                   }
+                }
               },
             ),
           ),
@@ -194,14 +229,22 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
             child: posterUrl.isEmpty
                 ? Container(
                     color: const Color(0xFFFFEEF2),
-                    child: const Icon(Icons.image_outlined, size: 72, color: Color(0xFFFFB6C1)),
+                    child: const Icon(
+                      Icons.image_outlined,
+                      size: 72,
+                      color: Color(0xFFFFB6C1),
+                    ),
                   )
                 : Image.network(
                     posterUrl,
                     fit: BoxFit.cover,
                     errorBuilder: (_, __, ___) => Container(
                       color: const Color(0xFFFFEEF2),
-                      child: const Icon(Icons.broken_image_outlined, size: 72, color: Color(0xFFFFB6C1)),
+                      child: const Icon(
+                        Icons.broken_image_outlined,
+                        size: 72,
+                        color: Color(0xFFFFB6C1),
+                      ),
                     ),
                   ),
           ),
@@ -239,8 +282,11 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
                     icon: Icons.share_rounded,
                     onTap: () {
                       final title = widget.activity['title'] ?? 'Activity';
-                      final location = widget.activity['location'] ?? 'Unknown Location';
-                      Share.share('Check out this activity: $title\n\nLocation: $location\n\nDownload Engage360 to join me!');
+                      final location =
+                          widget.activity['location'] ?? 'Unknown Location';
+                      Share.share(
+                        'Check out this activity: $title\n\nLocation: $location\n\nDownload Engage360 to join me!',
+                      );
                     },
                   ),
                 ],
@@ -252,7 +298,10 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
     );
   }
 
-  Widget _buildCircleButton({required IconData icon, required VoidCallback onTap}) {
+  Widget _buildCircleButton({
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -305,7 +354,9 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          if (user != null && widget.activity['createdBy'] == user.uid && widget.activity['activityCode'] != null)
+          if (user != null &&
+              widget.activity['createdBy'] == user.uid &&
+              widget.activity['activityCode'] != null)
             Container(
               width: double.infinity,
               margin: const EdgeInsets.only(bottom: 24),
@@ -317,14 +368,29 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
               ),
               child: Column(
                 children: [
-                  const Text('ADMIN ACCESS CODE', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFFF57C00))),
+                  const Text(
+                    'ADMIN ACCESS CODE',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFFF57C00),
+                    ),
+                  ),
                   const SizedBox(height: 4),
                   Text(
                     widget.activity['activityCode'],
-                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: 4, color: Color(0xFFE65100)),
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 4,
+                      color: Color(0xFFE65100),
+                    ),
                   ),
                   const SizedBox(height: 4),
-                  const Text('Share this code for manual check-in', style: TextStyle(fontSize: 12, color: Color(0xFFE65100))),
+                  const Text(
+                    'Share this code for manual check-in',
+                    style: TextStyle(fontSize: 12, color: Color(0xFFE65100)),
+                  ),
                 ],
               ),
             ),
@@ -332,7 +398,10 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFFFEEF2),
                   borderRadius: BorderRadius.circular(12),
@@ -350,15 +419,23 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
               const Spacer(),
               if (user != null)
                 StreamBuilder<Map<String, dynamic>?>(
-                  stream: firestoreService.getUserRegistrationStream(user.uid, activityId),
+                  stream: firestoreService.getUserRegistrationStream(
+                    user.uid,
+                    activityId,
+                  ),
                   builder: (context, snapshot) {
                     final data = snapshot.data;
-                    final bool isRegistered = data != null; // If doc exists, they are registered
-                    final bool isCheckedIn = data != null && data['status'] == 'checked-in';
+                    final bool isRegistered =
+                        data != null; // If doc exists, they are registered
+                    final bool isCheckedIn =
+                        data != null && data['status'] == 'checked-in';
 
                     if (isCheckedIn) {
                       return Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFFE8F5E9),
                           borderRadius: BorderRadius.circular(8),
@@ -374,7 +451,10 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
                       );
                     } else if (isRegistered) {
                       return Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFFFFF3E0),
                           borderRadius: BorderRadius.circular(8),
@@ -390,7 +470,10 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
                       );
                     } else if (isCompleted) {
                       return Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFFEEEEEE),
                           borderRadius: BorderRadius.circular(8),
@@ -410,7 +493,10 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
                 )
               else if (isCompleted)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFEEEEEE),
                     borderRadius: BorderRadius.circular(8),
@@ -427,7 +513,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
             ],
           ),
           const SizedBox(height: 16),
-          
+
           // Title
           Text(
             title,
@@ -439,11 +525,15 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          
+
           // Organization
           Row(
             children: <Widget>[
-              const Icon(Icons.apartment_rounded, color: Color(0xFFFF6B9D), size: 18),
+              const Icon(
+                Icons.apartment_rounded,
+                color: Color(0xFFFF6B9D),
+                size: 18,
+              ),
               const SizedBox(width: 8),
               Text(
                 organization,
@@ -455,7 +545,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
             ],
           ),
           const SizedBox(height: 24),
-          
+
           // Info Grid (Replaces Pills for cleaner look)
           Container(
             padding: const EdgeInsets.all(16),
@@ -468,7 +558,11 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
               children: [
                 _buildInfoItem(Icons.access_time_rounded, duration, 'Duration'),
                 Container(width: 1, height: 30, color: Colors.grey[300]),
-                _buildInfoItem(Icons.people_outline_rounded, spots, 'Availability'),
+                _buildInfoItem(
+                  Icons.people_outline_rounded,
+                  spots,
+                  'Availability',
+                ),
               ],
             ),
           ),
@@ -478,7 +572,11 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.location_on_outlined, color: Color(0xFFFF6B9D), size: 20),
+              const Icon(
+                Icons.location_on_outlined,
+                color: Color(0xFFFF6B9D),
+                size: 20,
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
@@ -491,15 +589,17 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
               ),
             ],
           ),
-          
+
           const SizedBox(height: 24),
-          
+
           // Community Chat Button
           GestureDetector(
             onTap: () {
               if (user == null) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Please sign in to join the chat')),
+                  const SnackBar(
+                    content: Text('Please sign in to join the chat'),
+                  ),
                 );
                 return;
               }
@@ -518,7 +618,9 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFFF6B9D).withOpacity(0.3)),
+                border: Border.all(
+                  color: const Color(0xFFFF6B9D).withOpacity(0.3),
+                ),
                 boxShadow: [
                   BoxShadow(
                     color: const Color(0xFFFF6B9D).withOpacity(0.05),
@@ -529,7 +631,10 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
               ),
               child: Row(
                 children: const [
-                  Icon(Icons.chat_bubble_outline_rounded, color: Color(0xFFFF6B9D)),
+                  Icon(
+                    Icons.chat_bubble_outline_rounded,
+                    color: Color(0xFFFF6B9D),
+                  ),
                   SizedBox(width: 12),
                   Text(
                     'Join Community Chat',
@@ -539,14 +644,18 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
                     ),
                   ),
                   Spacer(),
-                  Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Color(0xFFFF6B9D)),
+                  Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 16,
+                    color: Color(0xFFFF6B9D),
+                  ),
                 ],
               ),
             ),
           ),
-          
+
           const SizedBox(height: 32),
-          
+
           // Description
           const Text(
             'About',
@@ -585,16 +694,18 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
         ),
         Text(
           label,
-          style: const TextStyle(
-            fontSize: 10,
-            color: Color(0xFF999999),
-          ),
+          style: const TextStyle(fontSize: 10, color: Color(0xFF999999)),
         ),
       ],
     );
   }
 
-  Widget _buildFeedbackSection(BuildContext context, FirestoreService firestoreService, String activityId, User? user) {
+  Widget _buildFeedbackSection(
+    BuildContext context,
+    FirestoreService firestoreService,
+    String activityId,
+    User? user,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -632,7 +743,9 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 4),
                       child: Icon(
-                        index < _rating ? Icons.star_rounded : Icons.star_border_rounded,
+                        index < _rating
+                            ? Icons.star_rounded
+                            : Icons.star_border_rounded,
                         size: 32,
                         color: const Color(0xFFFFC107),
                       ),
@@ -661,7 +774,12 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
                 child: ElevatedButton(
                   onPressed: () async {
                     if (user != null && _reviewController.text.isNotEmpty) {
-                      await firestoreService.addReview(activityId, user.uid, _rating, _reviewController.text);
+                      await firestoreService.addReview(
+                        activityId,
+                        user.uid,
+                        _rating,
+                        _reviewController.text,
+                      );
                       _reviewController.clear();
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -672,7 +790,9 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFFF6B9D),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
                   child: const Text('Submit Review'),
@@ -685,7 +805,11 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
     );
   }
 
-  void _showActivityQRDialog(BuildContext context, String activityId, String title) {
+  void _showActivityQRDialog(
+    BuildContext context,
+    String activityId,
+    String title,
+  ) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -721,13 +845,21 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
         ],
       ),
     );
   }
 
-  void _showScanCheckInDialog(BuildContext context, FirestoreService firestoreService, String? userId, String activityId) {
+  void _showScanCheckInDialog(
+    BuildContext context,
+    FirestoreService firestoreService,
+    String? userId,
+    String activityId,
+  ) {
     final TextEditingController codeController = TextEditingController();
     showDialog(
       context: context,
@@ -760,33 +892,46 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
                     context,
                     MaterialPageRoute(builder: (context) => QRScannerScreen()),
                   );
-                  
+
                   if (result != null && result is String) {
-                     codeController.text = result;
-                     // Auto submit
-                     if (context.mounted) {
-                       _handleCheckInSubmit(context, firestoreService, userId, activityId, result);
-                     }
+                    codeController.text = result;
+                    // Auto submit
+                    if (context.mounted) {
+                      _handleCheckInSubmit(
+                        context,
+                        firestoreService,
+                        userId,
+                        activityId,
+                        result,
+                      );
+                    }
                   }
                 },
                 child: const Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.qr_code_scanner, color: Colors.white, size: 48),
-                    SizedBox(height: 16),
-                    Text(
-                      'Tap to Scan',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.white70),
-                    ),
-                  ],
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.qr_code_scanner,
+                        color: Colors.white,
+                        size: 48,
+                      ),
+                      SizedBox(height: 16),
+                      Text(
+                        'Tap to Scan',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.white70),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
             ), // Close Container
             const SizedBox(height: 16),
-            const Text('Or enter Activity ID manually:', style: TextStyle(fontWeight: FontWeight.bold)),
+            const Text(
+              'Or enter Activity ID manually:',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 8),
             TextField(
               controller: codeController,
@@ -806,10 +951,18 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () => _handleCheckInSubmit(context, firestoreService, userId, activityId, codeController.text.trim()),
+            onPressed: () => _handleCheckInSubmit(
+              context,
+              firestoreService,
+              userId,
+              activityId,
+              codeController.text.trim(),
+            ),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFFF6B9D),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
             child: const Text('Check In'),
           ),
@@ -818,7 +971,11 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
     );
   }
 
-  void _showAttendanceDialog(BuildContext context, FirestoreService firestoreService, String activityId) {
+  void _showAttendanceDialog(
+    BuildContext context,
+    FirestoreService firestoreService,
+    String activityId,
+  ) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -862,9 +1019,14 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
                             },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFFFF6B9D),
-                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                              ),
                             ),
-                            child: const Text('Check In', style: TextStyle(fontSize: 12)),
+                            child: const Text(
+                              'Check In',
+                              style: TextStyle(fontSize: 12),
+                            ),
                           ),
                   );
                 },
@@ -873,12 +1035,22 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close'))
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
         ],
       ),
     );
   }
-  Future<void> _handleCheckInSubmit(BuildContext context, FirestoreService firestoreService, String? userId, String activityId, String code) async {
+
+  Future<void> _handleCheckInSubmit(
+    BuildContext context,
+    FirestoreService firestoreService,
+    String? userId,
+    String activityId,
+    String code,
+  ) async {
     final String? activityCode = widget.activity['activityCode'];
 
     if (code.isEmpty || userId == null) {
@@ -888,7 +1060,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
     // Validate Code
     // Allow matching activityId OR activityCode
     if (code != activityId && code != activityCode) {
-       ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Invalid Code. Please try again.')),
       );
       return;
@@ -903,7 +1075,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
 
     try {
       await firestoreService.checkInUserByActivity(userId, activityId);
-      
+
       if (context.mounted) {
         Navigator.pop(context); // Pop loading
         Navigator.pop(context); // Pop check-in dialog
@@ -918,14 +1090,18 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
       if (context.mounted) {
         Navigator.pop(context); // Pop loading
         // Don't pop check-in dialog, let them retry
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     }
   }
 
-  void _showUserTicketDialog(BuildContext context, String userId, String userName) {
+  void _showUserTicketDialog(
+    BuildContext context,
+    String userId,
+    String userName,
+  ) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -1005,12 +1181,11 @@ class _JoinBottomBar extends StatelessWidget {
   // I will just add the method to the class _ActivityDetailScreenState and pass another callback.
   // Wait, I am editing the class _JoinBottomBar below.
   // I'll update the constructor signature in a separate chunk.
-  
+
   // Wait, I cannot change constructor in this chunk easily because I need to match the previous chunk.
   // I will scroll up and fix the call site in _ActivityDetailScreenState build method first?
   // Actually, I can use the context to find the User name?
   // Let's modify the signature in the next chunk.
-
 
   @override
   Widget build(BuildContext context) {
@@ -1035,113 +1210,184 @@ class _JoinBottomBar extends StatelessWidget {
             child: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
               stream: user == null
                   ? null
-                  : FirebaseFirestore.instance.collection('users').doc(user!.uid).snapshots(),
-              builder: (BuildContext context,
-                  AsyncSnapshot<DocumentSnapshot<Map<String, dynamic>>> snapshot) {
-                if (activityId.isEmpty) {
-                  return _buildButton(context, enabled: false, label: 'Unavailable');
-                }
-                if (user == null) {
-                  return _buildButton(context, enabled: false, label: 'Sign in to join');
-                }
-                if (!snapshot.hasData) {
-                  return const SizedBox(
-                    height: 56,
-                    child: Center(child: CircularProgressIndicator()),
-                  );
-                }
-                final Map<String, dynamic>? data = snapshot.data?.data();
-                if (data == null) {
-                  return _buildButton(context, enabled: false, label: 'User data unavailable');
-                }
-                final String role = (data['role'] as String?) ?? 'volunteer';
-                final List<String> joinedActivities = List<String>.from(
-                  data['joinedActivities'] ?? <String>[],
-                );
-                final bool isOrganizer = role == 'organization';
-                final bool isJoined = joinedActivities.contains(activityId);
+                  : FirebaseFirestore.instance
+                        .collection('users')
+                        .doc(user!.uid)
+                        .snapshots(),
+              builder:
+                  (
+                    BuildContext context,
+                    AsyncSnapshot<DocumentSnapshot<Map<String, dynamic>>>
+                    snapshot,
+                  ) {
+                    if (activityId.isEmpty) {
+                      return _buildButton(
+                        context,
+                        enabled: false,
+                        label: 'Unavailable',
+                      );
+                    }
+                    if (user == null) {
+                      return _buildButton(
+                        context,
+                        enabled: false,
+                        label: 'Sign in to join',
+                      );
+                    }
+                    if (!snapshot.hasData) {
+                      return const SizedBox(
+                        height: 56,
+                        child: Center(child: CircularProgressIndicator()),
+                      );
+                    }
+                    final Map<String, dynamic>? data = snapshot.data?.data();
+                    if (data == null) {
+                      return _buildButton(
+                        context,
+                        enabled: false,
+                        label: 'User data unavailable',
+                      );
+                    }
+                    final String role =
+                        (data['role'] as String?) ?? 'volunteer';
+                    final List<String> joinedActivities = List<String>.from(
+                      data['joinedActivities'] ?? <String>[],
+                    );
+                    final bool isOrganizer = role == 'organization';
+                    final bool isJoined = joinedActivities.contains(activityId);
 
-                if (isOrganizer) {
-                  return Row(
-                    children: [
-                      Expanded(child: _buildButton(context, enabled: true, label: 'Show QR', onPressed: onShowQR)),
-                      const SizedBox(width: 8),
-                      Expanded(child: _buildButton(context, enabled: true, label: 'Scan', onPressed: onScanTicket)),
-                      const SizedBox(width: 8),
-                      Expanded(child: _buildButton(context, enabled: true, label: 'List', onPressed: onShowAttendance)),
-                    ],
-                  );
-                }
-                
-                if (isJoined) {
-                  return StreamBuilder<Map<String, dynamic>?>(
-                    stream: firestoreService.getUserRegistrationStream(user!.uid, activityId),
-                    builder: (context, regSnapshot) {
-                      final regData = regSnapshot.data;
-                      final isCheckedIn = regData != null && regData['status'] == 'checked-in';
-
-                      if (isCheckedIn) {
-                        return _buildButton(
-                          context, 
-                          enabled: false, 
-                          label: 'Checked In', 
-                          backgroundColor: const Color(0xFF27AE60),
-                          textColor: Colors.white,
-                        );
-                      }
-
+                    if (isOrganizer) {
                       return Row(
                         children: [
-                          Expanded(child: _buildButton(context, enabled: true, label: 'My Ticket', onPressed: onShowTicket)),
-                          const SizedBox(width: 12),
-                          Expanded(child: _buildButton(context, enabled: true, label: 'Scan Event', onPressed: onScanQR)),
+                          Expanded(
+                            child: _buildButton(
+                              context,
+                              enabled: true,
+                              label: 'QR',
+                              onPressed: onShowQR,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: _buildButton(
+                              context,
+                              enabled: true,
+                              label: 'Scan',
+                              onPressed: onScanTicket,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: _buildButton(
+                              context,
+                              enabled: true,
+                              label: 'List',
+                              onPressed: onShowAttendance,
+                            ),
+                          ),
                         ],
                       );
                     }
-                  );
-                }
 
-                if (isCompleted) {
-                   return _buildButton(context, enabled: false, label: 'Activity Completed');
-                }
+                    if (isJoined) {
+                      return StreamBuilder<Map<String, dynamic>?>(
+                        stream: firestoreService.getUserRegistrationStream(
+                          user!.uid,
+                          activityId,
+                        ),
+                        builder: (context, regSnapshot) {
+                          final regData = regSnapshot.data;
+                          final isCheckedIn =
+                              regData != null &&
+                              regData['status'] == 'checked-in';
 
-                return _buildButton(
-                  context,
-                  enabled: true,
-                  label: 'Join Activity',
-                  onPressed: () async {
-                    if (user == null) {
-                      return;
-                    }
-                    await firestoreService.joinActivity(user!.uid, activityId);
-                    
-                    // Schedule Reminder (1 hour before)
-                    if (startDate.isNotEmpty) {
-                       try {
-                         final start = DateTime.parse(startDate);
-                         final reminderTime = start.subtract(const Duration(hours: 1));
-                         if (reminderTime.isAfter(DateTime.now())) {
-                           await NotificationService().scheduleNotification(
-                             id: activityId.hashCode, 
-                             title: 'Activity Reminder ⏰', 
-                             body: 'Your activity starts in 1 hour!', 
-                             scheduledTime: reminderTime
-                           );
-                         }
-                       } catch (e) {
-                         debugPrint('Error scheduling notification: $e');
-                       }
+                          if (isCheckedIn) {
+                            return _buildButton(
+                              context,
+                              enabled: false,
+                              label: 'Checked In',
+                              backgroundColor: const Color(0xFF27AE60),
+                              textColor: Colors.white,
+                            );
+                          }
+
+                          return Row(
+                            children: [
+                              Expanded(
+                                child: _buildButton(
+                                  context,
+                                  enabled: true,
+                                  label: 'My Ticket',
+                                  onPressed: onShowTicket,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: _buildButton(
+                                  context,
+                                  enabled: true,
+                                  label: 'Scan Event',
+                                  onPressed: onScanQR,
+                                ),
+                              ),
+                            ],
+                          );
+                        },
+                      );
                     }
 
-                    if (!context.mounted) {
-                      return;
+                    if (isCompleted) {
+                      return _buildButton(
+                        context,
+                        enabled: false,
+                        label: 'Activity Completed',
+                      );
                     }
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Joined successfully! Reminder set.')),
+
+                    return _buildButton(
+                      context,
+                      enabled: true,
+                      label: 'Join Activity',
+                      onPressed: () async {
+                        if (user == null) {
+                          return;
+                        }
+                        await firestoreService.joinActivity(
+                          user!.uid,
+                          activityId,
+                        );
+
+                        // Schedule Reminder (1 hour before)
+                        if (startDate.isNotEmpty) {
+                          try {
+                            final start = DateTime.parse(startDate);
+                            final reminderTime = start.subtract(
+                              const Duration(hours: 1),
+                            );
+                            if (reminderTime.isAfter(DateTime.now())) {
+                              await NotificationService().scheduleNotification(
+                                id: activityId.hashCode,
+                                title: 'Activity Reminder ⏰',
+                                body: 'Your activity starts in 1 hour!',
+                                scheduledTime: reminderTime,
+                              );
+                            }
+                          } catch (e) {
+                            debugPrint('Error scheduling notification: $e');
+                          }
+                        }
+
+                        if (!context.mounted) {
+                          return;
+                        }
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Joined successfully! Reminder set.'),
+                          ),
+                        );
+                      },
                     );
                   },
-                );
-              },
             ),
           ),
         ),
@@ -1149,9 +1395,10 @@ class _JoinBottomBar extends StatelessWidget {
     );
   }
 
-  Widget _buildButton(BuildContext context, {
-    required bool enabled, 
-    required String label, 
+  Widget _buildButton(
+    BuildContext context, {
+    required bool enabled,
+    required String label,
     VoidCallback? onPressed,
     Color? backgroundColor,
     Color? textColor,
@@ -1163,7 +1410,8 @@ class _JoinBottomBar extends StatelessWidget {
         onPressed: enabled ? onPressed : null,
         style: ElevatedButton.styleFrom(
           backgroundColor: backgroundColor ?? const Color(0xFFFF6B9D),
-          disabledBackgroundColor: backgroundColor?.withOpacity(0.5) ?? const Color(0xFFF0F0F0),
+          disabledBackgroundColor:
+              backgroundColor?.withOpacity(0.5) ?? const Color(0xFFF0F0F0),
           disabledForegroundColor: textColor ?? const Color(0xFFAAAAAA),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
