@@ -31,7 +31,10 @@ class AdminDashboard extends StatelessWidget {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.notifications_none_rounded, color: Color(0xFF1A1A1A)),
+            icon: const Icon(
+              Icons.notifications_none_rounded,
+              color: Color(0xFF1A1A1A),
+            ),
             onPressed: () {},
           ),
           // IconButton(
@@ -44,11 +47,16 @@ class AdminDashboard extends StatelessWidget {
       ),
       body: StreamBuilder<DocumentSnapshot>(
         stream: FirebaseAuth.instance.currentUser?.uid != null
-            ? FirebaseFirestore.instance.collection('users').doc(FirebaseAuth.instance.currentUser!.uid).snapshots()
+            ? FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(FirebaseAuth.instance.currentUser!.uid)
+                  .snapshots()
             : null,
         builder: (context, snapshot) {
           String userName = 'Organization';
-          if (snapshot.hasData && snapshot.data != null && snapshot.data!.exists) {
+          if (snapshot.hasData &&
+              snapshot.data != null &&
+              snapshot.data!.exists) {
             final data = snapshot.data!.data() as Map<String, dynamic>;
             userName = data['name'] ?? 'Organization';
           }
@@ -69,10 +77,7 @@ class AdminDashboard extends StatelessWidget {
                 ),
                 const Text(
                   'Welcome back to your dashboard',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Color(0xFF888888),
-                  ),
+                  style: TextStyle(fontSize: 16, color: Color(0xFF888888)),
                 ),
                 const SizedBox(height: 24),
 
@@ -101,7 +106,10 @@ class AdminDashboard extends StatelessWidget {
                         () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (context) => const ActivityCreateScreen()),
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  const ActivityCreateScreen(),
+                            ),
                           );
                         },
                       ),
@@ -116,7 +124,9 @@ class AdminDashboard extends StatelessWidget {
                         () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (context) => const RewardsScreen()),
+                            MaterialPageRoute(
+                              builder: (context) => const RewardsScreen(),
+                            ),
                           );
                         },
                       ),
@@ -133,81 +143,112 @@ class AdminDashboard extends StatelessWidget {
                         Icons.qr_code_scanner_rounded,
                         const Color(0xFF4CAF50),
                         () async {
-                           // Generic Scan
-                           final result = await Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (context) => QRScannerScreen()),
-                            );
-                            if (result != null && result is String && context.mounted) {
-                               final firestore = FirestoreService();
-                               // Check pending registrations
-                               try {
-                                 final pending = await firestore.getActiveRegistrationsForUser(result);
-                                 if (context.mounted) {
-                                   if (pending.isEmpty) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(content: Text('No pending check-ins found for this user.')),
-                                      );
-                                   } else if (pending.length == 1) {
-                                      // Auto confirm
-                                      final reg = pending.first;
-                                      final bool? confirm = await showDialog<bool>(
-                                        context: context,
-                                        builder: (context) => AlertDialog(
-                                          title: const Text('Confirm Check-in'),
-                                          content: Text('Check in user to ${reg['activityTitle']}?'),
-                                          actions: [
-                                            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-                                            ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Check In')),
-                                          ],
+                          // Generic Scan
+                          final result = await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => QRScannerScreen(),
+                            ),
+                          );
+                          if (result != null &&
+                              result is String &&
+                              context.mounted) {
+                            final firestore = FirestoreService();
+                            // Check pending registrations
+                            try {
+                              final pending = await firestore
+                                  .getActiveRegistrationsForUser(result);
+                              if (context.mounted) {
+                                if (pending.isEmpty) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'No pending check-ins found for this user.',
+                                      ),
+                                    ),
+                                  );
+                                } else if (pending.length == 1) {
+                                  // Auto confirm
+                                  final reg = pending.first;
+                                  final bool? confirm = await showDialog<bool>(
+                                    context: context,
+                                    builder: (context) => AlertDialog(
+                                      title: const Text('Confirm Check-in'),
+                                      content: Text(
+                                        'Check in user to ${reg['activityTitle']}?',
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () =>
+                                              Navigator.pop(context, false),
+                                          child: const Text('Cancel'),
                                         ),
-                                      );
-                                      if (confirm == true && context.mounted) {
-                                         await firestore.checkInUser(reg['id']);
-                                         ScaffoldMessenger.of(context).showSnackBar(
-                                            const SnackBar(content: Text('Checked in successfully!')),
-                                         );
-                                      }
-                                   } else {
-                                     // Pick one
-                                     showDialog(
-                                       context: context,
-                                       builder: (context) => AlertDialog(
-                                         title: const Text('Select Activity'),
-                                         content: SizedBox(
-                                           width: double.maxFinite,
-                                           child: ListView.builder(
-                                             shrinkWrap: true,
-                                             itemCount: pending.length,
-                                             itemBuilder: (context, index) {
-                                               final reg = pending[index];
-                                               return ListTile(
-                                                 title: Text(reg['activityTitle']),
-                                                 onTap: () async {
-                                                   Navigator.pop(context);
-                                                   await firestore.checkInUser(reg['id']);
-                                                   if (context.mounted) {
-                                                      ScaffoldMessenger.of(context).showSnackBar(
-                                                        const SnackBar(content: Text('Checked in successfully!')),
-                                                      );
-                                                   }
-                                                 },
-                                               );
-                                             },
-                                           ),
-                                         ),
-                                       ),
-                                     );
-                                   }
-                                 }
-                               } catch (e) {
-                                  if (context.mounted) {
+                                        ElevatedButton(
+                                          onPressed: () =>
+                                              Navigator.pop(context, true),
+                                          child: const Text('Check In'),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                  if (confirm == true && context.mounted) {
+                                    await firestore.checkInUser(reg['id']);
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text('Error: $e')),
+                                      const SnackBar(
+                                        content: Text(
+                                          'Checked in successfully!',
+                                        ),
+                                      ),
                                     );
                                   }
-                               }
+                                } else {
+                                  // Pick one
+                                  showDialog(
+                                    context: context,
+                                    builder: (context) => AlertDialog(
+                                      title: const Text('Select Activity'),
+                                      content: SizedBox(
+                                        width: double.maxFinite,
+                                        child: ListView.builder(
+                                          shrinkWrap: true,
+                                          itemCount: pending.length,
+                                          itemBuilder: (context, index) {
+                                            final reg = pending[index];
+                                            return ListTile(
+                                              title: Text(reg['activityTitle']),
+                                              onTap: () async {
+                                                Navigator.pop(context);
+                                                await firestore.checkInUser(
+                                                  reg['id'],
+                                                );
+                                                if (context.mounted) {
+                                                  ScaffoldMessenger.of(
+                                                    context,
+                                                  ).showSnackBar(
+                                                    const SnackBar(
+                                                      content: Text(
+                                                        'Checked in successfully!',
+                                                      ),
+                                                    ),
+                                                  );
+                                                }
+                                              },
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                }
+                              }
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Error: $e')),
+                                );
+                              }
                             }
+                          }
                         },
                       ),
                     ),
@@ -235,7 +276,10 @@ class AdminDashboard extends StatelessWidget {
                         if (user != null) {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (context) => AllActivitiesScreen(creatorId: user.uid)),
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  AllActivitiesScreen(creatorId: user.uid),
+                            ),
                           );
                         }
                       },
@@ -272,27 +316,29 @@ class AdminDashboard extends StatelessWidget {
           final docs = snapshot.data!.docs;
           totalActivities = docs.length;
           final now = DateTime.now();
-          
+
           for (var doc in docs) {
             final data = doc.data() as Map<String, dynamic>;
             final int parts = (data['participantsCount'] as int? ?? 0);
             totalParticipants += parts;
-            
+
             // Calc Active
             DateTime? start;
             DateTime? end;
-            if (data['startDate'] is Timestamp) start = (data['startDate'] as Timestamp).toDate();
-            if (data['endDate'] is Timestamp) end = (data['endDate'] as Timestamp).toDate();
-            
+            if (data['startDate'] is Timestamp)
+              start = (data['startDate'] as Timestamp).toDate();
+            if (data['endDate'] is Timestamp)
+              end = (data['endDate'] as Timestamp).toDate();
+
             if (start != null && end != null) {
-               if (now.isAfter(start) && now.isBefore(end)) {
-                 activeNow++;
-               }
-               // Calc Hours (Potential hours served by all participants)
-               final hours = end.difference(start).inHours;
-               if (hours > 0) {
-                 totalHours += hours * parts;
-               }
+              if (now.isAfter(start) && now.isBefore(end)) {
+                activeNow++;
+              }
+              // Calc Hours (Potential hours served by all participants)
+              final hours = end.difference(start).inHours;
+              if (hours > 0) {
+                totalHours += hours * parts;
+              }
             }
           }
         }
@@ -303,11 +349,29 @@ class AdminDashboard extends StatelessWidget {
           physics: const NeverScrollableScrollPhysics(),
           mainAxisSpacing: 16,
           crossAxisSpacing: 16,
-          childAspectRatio: 1.3,
+          childAspectRatio: 1.1,
           children: [
-            _buildStatCard('Total Activities', '$totalActivities', Icons.event_note_rounded, const Color(0xFFFFE5EE), const Color(0xFFFF6B9D)),
-            _buildStatCard('Total Volunteers', '$totalParticipants', Icons.people_outline_rounded, const Color(0xFFE5EEFF), const Color(0xFF6B9DFF)),
-            _buildStatCard('Est. Hours Served', '$totalHours', Icons.access_time_rounded, const Color(0xFFE5FFEA), const Color(0xFF4CAF50)),
+            _buildStatCard(
+              'Total Activities',
+              '$totalActivities',
+              Icons.event_note_rounded,
+              const Color(0xFFFFE5EE),
+              const Color(0xFFFF6B9D),
+            ),
+            _buildStatCard(
+              'Total Volunteers',
+              '$totalParticipants',
+              Icons.people_outline_rounded,
+              const Color(0xFFE5EEFF),
+              const Color(0xFF6B9DFF),
+            ),
+            _buildStatCard(
+              'Est. Hours Served',
+              '$totalHours',
+              Icons.access_time_rounded,
+              const Color(0xFFE5FFEA),
+              const Color(0xFF4CAF50),
+            ),
             // _buildStatCard('Avg. Rating', 'N/A', Icons.star_outline_rounded, const Color(0xFFFFF8E5), const Color(0xFFFFC107)),
           ],
         );
@@ -315,7 +379,13 @@ class AdminDashboard extends StatelessWidget {
     );
   }
 
-  Widget _buildStatCard(String title, String value, IconData icon, Color bgColor, Color iconColor) {
+  Widget _buildStatCard(
+    String title,
+    String value,
+    IconData icon,
+    Color bgColor,
+    Color iconColor,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -341,12 +411,15 @@ class AdminDashboard extends StatelessWidget {
             child: Icon(icon, color: iconColor, size: 20),
           ),
           const Spacer(),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF1A1A1A),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1A1A1A),
+              ),
             ),
           ),
           Text(
@@ -364,7 +437,13 @@ class AdminDashboard extends StatelessWidget {
     );
   }
 
-  Widget _buildActionButton(BuildContext context, String label, IconData icon, Color color, VoidCallback onTap) {
+  Widget _buildActionButton(
+    BuildContext context,
+    String label,
+    IconData icon,
+    Color color,
+    VoidCallback onTap,
+  ) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -425,7 +504,7 @@ class AdminDashboard extends StatelessWidget {
           itemBuilder: (context, index) {
             final activity = activities[index].data() as Map<String, dynamic>;
             activity['id'] = activities[index].id;
-            
+
             return Container(
               margin: const EdgeInsets.only(bottom: 12),
               padding: const EdgeInsets.all(12),
@@ -442,14 +521,18 @@ class AdminDashboard extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: Colors.grey[200],
                     borderRadius: BorderRadius.circular(8),
-                    image: activity['posterUrl'] != null && (activity['posterUrl'] as String).isNotEmpty
+                    image:
+                        activity['posterUrl'] != null &&
+                            (activity['posterUrl'] as String).isNotEmpty
                         ? DecorationImage(
                             image: NetworkImage(activity['posterUrl']),
                             fit: BoxFit.cover,
                           )
                         : null,
                   ),
-                  child: activity['posterUrl'] == null || (activity['posterUrl'] as String).isEmpty
+                  child:
+                      activity['posterUrl'] == null ||
+                          (activity['posterUrl'] as String).isEmpty
                       ? const Icon(Icons.event, color: Colors.grey)
                       : null,
                 ),
@@ -467,16 +550,25 @@ class AdminDashboard extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.edit_outlined, color: Color(0xFF666666)),
+                      icon: const Icon(
+                        Icons.edit_outlined,
+                        color: Color(0xFF666666),
+                      ),
                       onPressed: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => ActivityEditScreen(activity: activity)),
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                ActivityEditScreen(activity: activity),
+                          ),
                         );
                       },
                     ),
                     IconButton(
-                      icon: const Icon(Icons.delete_outline_rounded, color: Colors.red),
+                      icon: const Icon(
+                        Icons.delete_outline_rounded,
+                        color: Colors.red,
+                      ),
                       onPressed: () async {
                         final confirm = await showDialog<bool>(
                           context: context,
@@ -484,22 +576,36 @@ class AdminDashboard extends StatelessWidget {
                             title: const Text('Delete Activity?'),
                             content: const Text('This cannot be undone.'),
                             actions: [
-                              TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-                              TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Delete', style: TextStyle(color: Colors.red))),
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, false),
+                                child: const Text('Cancel'),
+                              ),
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, true),
+                                child: const Text(
+                                  'Delete',
+                                  style: TextStyle(color: Colors.red),
+                                ),
+                              ),
                             ],
                           ),
                         );
                         if (confirm == true) {
-                          await FirestoreService().deleteActivity(activity['id']);
+                          await FirestoreService().deleteActivity(
+                            activity['id'],
+                          );
                         }
                       },
                     ),
                   ],
                 ),
                 onTap: () {
-                   Navigator.push(
+                  Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => ActivityDetailScreen(activity: activity)),
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          ActivityDetailScreen(activity: activity),
+                    ),
                   );
                 },
               ),
