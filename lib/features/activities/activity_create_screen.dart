@@ -134,6 +134,9 @@ class _ActivityCreateScreenState extends State<ActivityCreateScreen> {
           selectedImage!,
           'activities/${DateTime.now().millisecondsSinceEpoch}.jpg',
         );
+        if (imageUrl == null) {
+          throw Exception('Failed to upload image. Please try again.');
+        }
       }
 
       final DateTime now = DateTime.now();

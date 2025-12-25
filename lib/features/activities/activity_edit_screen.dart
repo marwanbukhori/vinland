@@ -167,6 +167,9 @@ class _ActivityEditScreenState extends State<ActivityEditScreen> {
           selectedImage!,
           'activities/${DateTime.now().millisecondsSinceEpoch}.jpg',
         );
+        if (imageUrl == null) {
+          throw Exception('Failed to upload image. Please try again.');
+        }
       }
 
       await FirebaseFirestore.instance
