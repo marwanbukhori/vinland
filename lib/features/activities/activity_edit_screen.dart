@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -163,13 +164,9 @@ class _ActivityEditScreenState extends State<ActivityEditScreen> {
     try {
       String? imageUrl = existingImageUrl;
       if (selectedImage != null) {
-        imageUrl = await storageService.uploadImage(
-          selectedImage!,
-          'activities/${DateTime.now().millisecondsSinceEpoch}.jpg',
-        );
-        if (imageUrl == null) {
-          throw Exception('Failed to upload image. Please try again.');
-        }
+        final bytes = await selectedImage!.readAsBytes();
+        final base64String = base64Encode(bytes);
+        imageUrl = 'data:image/jpeg;base64,$base64String';
       }
 
       await FirebaseFirestore.instance
@@ -433,7 +430,50 @@ class _ActivityEditScreenState extends State<ActivityEditScreen> {
                   Image.file(selectedImage!, fit: BoxFit.cover)
                 else if (existingImageUrl != null &&
                     existingImageUrl!.isNotEmpty)
-                  Image.network(existingImageUrl!, fit: BoxFit.cover)
+                  Builder(
+                    builder: (context) {
+                      final cleanPosterUrl = existingImageUrl!
+                          .trim()
+                          .replaceAll(RegExp(r'\s+'), '');
+                      if (cleanPosterUrl.startsWith('data:image')) {
+                        try {
+                          final commaIndex = cleanPosterUrl.indexOf(',');
+                          if (commaIndex != -1) {
+                            final base64Data = cleanPosterUrl.substring(
+                              commaIndex + 1,
+                            );
+                            return Image.memory(
+                              base64Decode(base64Data),
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  Container(
+                                    color: const Color(0xFFFFEEF2),
+                                    child: const Icon(
+                                      Icons.broken_image_outlined,
+                                      size: 40,
+                                      color: Color(0xFFFFB6C1),
+                                    ),
+                                  ),
+                            );
+                          }
+                        } catch (e) {
+                          // Fall through to error container
+                        }
+                        return Container(
+                          color: const Color(0xFFFFEEF2),
+                          child: const Icon(
+                            Icons.broken_image_outlined,
+                            size: 40,
+                            color: Color(0xFFFFB6C1),
+                          ),
+                        );
+                      }
+                      return Image.network(
+                        existingImageUrl!,
+                        fit: BoxFit.cover,
+                      );
+                    },
+                  )
                 else
                   Container(
                     color: const Color(0xFFFFEEF2),
