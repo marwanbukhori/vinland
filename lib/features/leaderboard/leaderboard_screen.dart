@@ -41,7 +41,7 @@ class LeaderboardScreen extends StatelessWidget {
             itemBuilder: (context, index) {
               final user = users[index];
               final String name = user['name'] ?? 'Unknown';
-              final int points = user['points'] ?? 0;
+              final int points = user['lifetimePoints'] ?? user['points'] ?? 0;
               final String userId = user['id'];
               final bool isMe = userId == currentUserId;
 
@@ -64,7 +64,9 @@ class LeaderboardScreen extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: isMe ? const Color(0xFFFFEEF2) : Colors.white,
                   borderRadius: BorderRadius.circular(16),
-                  border: isMe ? Border.all(color: const Color(0xFFFF6B9D), width: 1.5) : null,
+                  border: isMe
+                      ? Border.all(color: const Color(0xFFFF6B9D), width: 1.5)
+                      : null,
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withOpacity(0.05),
@@ -74,7 +76,10 @@ class LeaderboardScreen extends StatelessWidget {
                   ],
                 ),
                 child: ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 8,
+                  ),
                   leading: Container(
                     width: 40,
                     alignment: Alignment.center,
@@ -98,7 +103,10 @@ class LeaderboardScreen extends StatelessWidget {
                     ),
                   ),
                   trailing: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFFF5F5F5),
                       borderRadius: BorderRadius.circular(20),

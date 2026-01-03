@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -18,7 +19,14 @@ class _MyActivitiesViewState extends State<MyActivitiesView> {
   final FirestoreService _firestoreService = FirestoreService();
   String _searchQuery = '';
   String _selectedCategory = 'All';
-  final List<String> _categories = ['All', 'Community', 'Education', 'Healthcare', 'Environment', 'Other'];
+  final List<String> _categories = [
+    'All',
+    'Community',
+    'Education',
+    'Healthcare',
+    'Environment',
+    'Other',
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -56,7 +64,8 @@ class _MyActivitiesViewState extends State<MyActivitiesView> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: TextField(
-                        onChanged: (value) => setState(() => _searchQuery = value),
+                        onChanged: (value) =>
+                            setState(() => _searchQuery = value),
                         decoration: InputDecoration(
                           hintText: 'Search my activities',
                           hintStyle: TextStyle(
@@ -64,7 +73,9 @@ class _MyActivitiesViewState extends State<MyActivitiesView> {
                             fontSize: 15,
                           ),
                           border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(vertical: 15),
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 15,
+                          ),
                         ),
                       ),
                     ),
@@ -76,7 +87,10 @@ class _MyActivitiesViewState extends State<MyActivitiesView> {
             SizedBox(
               height: 60,
               child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 8,
+                ),
                 scrollDirection: Axis.horizontal,
                 itemCount: _categories.length,
                 itemBuilder: (context, index) {
@@ -86,12 +100,19 @@ class _MyActivitiesViewState extends State<MyActivitiesView> {
                     onTap: () => setState(() => _selectedCategory = category),
                     child: Container(
                       margin: const EdgeInsets.only(right: 8),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
                       decoration: BoxDecoration(
-                        color: isSelected ? const Color(0xFFFF6B9D) : Colors.white,
+                        color: isSelected
+                            ? const Color(0xFFFF6B9D)
+                            : Colors.white,
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(
-                          color: isSelected ? const Color(0xFFFF6B9D) : const Color(0xFFE0E0E0),
+                          color: isSelected
+                              ? const Color(0xFFFF6B9D)
+                              : const Color(0xFFE0E0E0),
                           width: 1,
                         ),
                       ),
@@ -99,7 +120,9 @@ class _MyActivitiesViewState extends State<MyActivitiesView> {
                         child: Text(
                           category,
                           style: TextStyle(
-                            color: isSelected ? Colors.white : const Color(0xFF666666),
+                            color: isSelected
+                                ? Colors.white
+                                : const Color(0xFF666666),
                             fontWeight: FontWeight.w600,
                             fontSize: 14,
                           ),
@@ -113,7 +136,10 @@ class _MyActivitiesViewState extends State<MyActivitiesView> {
             // Activities List
             Expanded(
               child: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-                stream: FirebaseFirestore.instance.collection('users').doc(widget.userId).snapshots(),
+                stream: FirebaseFirestore.instance
+                    .collection('users')
+                    .doc(widget.userId)
+                    .snapshots(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
@@ -123,10 +149,14 @@ class _MyActivitiesViewState extends State<MyActivitiesView> {
                   }
 
                   final userData = snapshot.data!.data() ?? {};
-                  final List<String> joinedActivities = List<String>.from(userData['joinedActivities'] ?? []);
+                  final List<String> joinedActivities = List<String>.from(
+                    userData['joinedActivities'] ?? [],
+                  );
 
                   if (joinedActivities.isEmpty) {
-                    return const Center(child: Text('You haven\'t joined any activities yet.'));
+                    return const Center(
+                      child: Text('You haven\'t joined any activities yet.'),
+                    );
                   }
 
                   return StreamBuilder<List<Map<String, dynamic>>>(
@@ -139,11 +169,20 @@ class _MyActivitiesViewState extends State<MyActivitiesView> {
                       final allActivities = activitiesSnapshot.data!;
                       final myActivities = allActivities.where((activity) {
                         final activityId = activity['id'] as String?;
-                        final category = activity['category'] as String? ?? 'Other';
-                        final title = (activity['title'] as String? ?? '').toLowerCase();
-                        final matchesSearch = title.contains(_searchQuery.toLowerCase());
-                        final matchesCategory = _selectedCategory == 'All' || category == _selectedCategory;
-                        return activityId != null && joinedActivities.contains(activityId) && matchesCategory && matchesSearch;
+                        final category =
+                            activity['category'] as String? ?? 'Other';
+                        final title = (activity['title'] as String? ?? '')
+                            .toLowerCase();
+                        final matchesSearch = title.contains(
+                          _searchQuery.toLowerCase(),
+                        );
+                        final matchesCategory =
+                            _selectedCategory == 'All' ||
+                            category == _selectedCategory;
+                        return activityId != null &&
+                            joinedActivities.contains(activityId) &&
+                            matchesCategory &&
+                            matchesSearch;
                       }).toList();
 
                       // Sort by nearest date
@@ -154,14 +193,18 @@ class _MyActivitiesViewState extends State<MyActivitiesView> {
                       });
 
                       if (myActivities.isEmpty) {
-                        return const Center(child: Text('No activities found for this category.'));
+                        return const Center(
+                          child: Text('No activities found for this category.'),
+                        );
                       }
 
                       return ListView.builder(
                         padding: const EdgeInsets.all(20),
                         itemCount: myActivities.length,
                         itemBuilder: (context, index) {
-                          return _MinimalistActivityCard(activity: myActivities[index]);
+                          return _MinimalistActivityCard(
+                            activity: myActivities[index],
+                          );
                         },
                       );
                     },
@@ -200,10 +243,15 @@ class _MinimalistActivityCard extends StatelessWidget {
 
     String dateDisplay = 'TBA';
     if (activity['startDate'] is Timestamp) {
-      dateDisplay = DateFormat('MMM d, y').format((activity['startDate'] as Timestamp).toDate());
-    } else if (activity['startDate'] is String && (activity['startDate'] as String).isNotEmpty) {
+      dateDisplay = DateFormat(
+        'MMM d, y',
+      ).format((activity['startDate'] as Timestamp).toDate());
+    } else if (activity['startDate'] is String &&
+        (activity['startDate'] as String).isNotEmpty) {
       try {
-        dateDisplay = DateFormat('MMM d, y').format(DateTime.parse(activity['startDate']));
+        dateDisplay = DateFormat(
+          'MMM d, y',
+        ).format(DateTime.parse(activity['startDate']));
       } catch (_) {}
     }
 
@@ -211,7 +259,9 @@ class _MinimalistActivityCard extends StatelessWidget {
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => ActivityDetailScreen(activity: activity)),
+          MaterialPageRoute(
+            builder: (context) => ActivityDetailScreen(activity: activity),
+          ),
         );
       },
       child: Container(
@@ -232,15 +282,65 @@ class _MinimalistActivityCard extends StatelessWidget {
                 child: posterUrl.isEmpty
                     ? Container(
                         color: const Color(0xFFF5F5F5),
-                        child: Icon(Icons.image_outlined, color: Colors.grey[400], size: 28),
-                      )
-                    : Image.network(
-                        posterUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
-                          color: const Color(0xFFF5F5F5),
-                          child: Icon(Icons.broken_image_outlined, color: Colors.grey[400], size: 28),
+                        child: Icon(
+                          Icons.image_outlined,
+                          color: Colors.grey[400],
+                          size: 28,
                         ),
+                      )
+                    : Builder(
+                        builder: (context) {
+                          final cleanPosterUrl = posterUrl.trim().replaceAll(
+                            RegExp(r'\s+'),
+                            '',
+                          );
+                          if (cleanPosterUrl.startsWith('data:image')) {
+                            try {
+                              final commaIndex = cleanPosterUrl.indexOf(',');
+                              if (commaIndex != -1) {
+                                final base64Data = cleanPosterUrl.substring(
+                                  commaIndex + 1,
+                                );
+                                return Image.memory(
+                                  base64Decode(base64Data),
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      color: const Color(0xFFF5F5F5),
+                                      child: Icon(
+                                        Icons.broken_image_outlined,
+                                        color: Colors.grey[400],
+                                        size: 28,
+                                      ),
+                                    );
+                                  },
+                                );
+                              }
+                            } catch (e) {
+                              // Fall through
+                            }
+                            return Container(
+                              color: const Color(0xFFF5F5F5),
+                              child: Icon(
+                                Icons.broken_image_outlined,
+                                color: Colors.grey[400],
+                                size: 28,
+                              ),
+                            );
+                          }
+                          return Image.network(
+                            posterUrl,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Container(
+                              color: const Color(0xFFF5F5F5),
+                              child: Icon(
+                                Icons.broken_image_outlined,
+                                color: Colors.grey[400],
+                                size: 28,
+                              ),
+                            ),
+                          );
+                        },
                       ),
               ),
             ),
@@ -263,7 +363,11 @@ class _MinimalistActivityCard extends StatelessWidget {
                   const SizedBox(height: 6),
                   Row(
                     children: [
-                      Icon(Icons.calendar_today_outlined, size: 13, color: Colors.grey[600]),
+                      Icon(
+                        Icons.calendar_today_outlined,
+                        size: 13,
+                        color: Colors.grey[600],
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         dateDisplay,
@@ -278,7 +382,11 @@ class _MinimalistActivityCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      Icon(Icons.location_on_outlined, size: 13, color: Colors.grey[600]),
+                      Icon(
+                        Icons.location_on_outlined,
+                        size: 13,
+                        color: Colors.grey[600],
+                      ),
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(
@@ -297,10 +405,16 @@ class _MinimalistActivityCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      Icon(Icons.people_outline, size: 13, color: Colors.grey[600]),
+                      Icon(
+                        Icons.people_outline,
+                        size: 13,
+                        color: Colors.grey[600],
+                      ),
                       const SizedBox(width: 4),
                       Text(
-                        maxParticipants > 0 ? '$participants / $maxParticipants' : '$participants',
+                        maxParticipants > 0
+                            ? '$participants / $maxParticipants'
+                            : '$participants',
                         style: TextStyle(
                           color: Colors.grey[600],
                           fontSize: 12,

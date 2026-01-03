@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -34,7 +35,10 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
 
     return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
       stream: userId != null
-          ? FirebaseFirestore.instance.collection('users').doc(userId).snapshots()
+          ? FirebaseFirestore.instance
+                .collection('users')
+                .doc(userId)
+                .snapshots()
           : null,
       builder: (context, snapshot) {
         final String role = snapshot.data?.data()?['role'] ?? 'volunteer';
@@ -42,18 +46,18 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
 
         final List<Widget> screens;
         if (isOrganization) {
-           screens = [
-             const AdminDashboard(),
-             const RewardsScreen(),
-             const ProfileScreen(),
-           ];
+          screens = [
+            const AdminDashboard(),
+            const RewardsScreen(),
+            const ProfileScreen(),
+          ];
         } else {
-           screens = [
-             const ActivitiesHomeView(),
-             MyActivitiesView(userId: userId),
-             const RewardsScreen(),
-             const ProfileScreen(),
-           ];
+          screens = [
+            const ActivitiesHomeView(),
+            MyActivitiesView(userId: userId),
+            const RewardsScreen(),
+            const ProfileScreen(),
+          ];
         }
 
         return Scaffold(
@@ -62,12 +66,17 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
             children: screens,
           ),
           bottomNavigationBar: _buildBottomNav(isOrganization),
-          floatingActionButton: isOrganization && _currentIndex == 0 // Dashboard is 0 for Admin
+          floatingActionButton:
+              isOrganization &&
+                  _currentIndex ==
+                      0 // Dashboard is 0 for Admin
               ? FloatingActionButton(
                   onPressed: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => const ActivityCreateScreen()),
+                      MaterialPageRoute(
+                        builder: (context) => const ActivityCreateScreen(),
+                      ),
                     );
                   },
                   backgroundColor: const Color(0xFFFF6B9D),
@@ -150,7 +159,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                   fontSize: 10,
                 ),
               ),
-            ]
+            ],
           ],
         ),
       ),
@@ -169,8 +178,15 @@ class _ActivitiesHomeViewState extends State<ActivitiesHomeView> {
   final FirestoreService _firestoreService = FirestoreService();
   String _searchQuery = '';
   String _selectedCategory = 'All';
-  
-  final List<String> _categories = ['All', 'Community', 'Education', 'Healthcare', 'Environment', 'Other'];
+
+  final List<String> _categories = [
+    'All',
+    'Community',
+    'Education',
+    'Healthcare',
+    'Environment',
+    'Other',
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -184,7 +200,7 @@ class _ActivitiesHomeViewState extends State<ActivitiesHomeView> {
           children: [
             // Header Section
             _buildHeader(userId),
-            
+
             // Scrollable Content
             Expanded(
               child: SingleChildScrollView(
@@ -194,28 +210,32 @@ class _ActivitiesHomeViewState extends State<ActivitiesHomeView> {
                   children: [
                     // Search Bar
                     _buildSearchBar(),
-                    
+
                     // Categories
                     _buildCategories(),
-                    
+
                     // Popular/Featured Section
                     _buildSectionHeader('Popular Events', () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const AllActivitiesScreen()),
+                        MaterialPageRoute(
+                          builder: (context) => const AllActivitiesScreen(),
+                        ),
                       );
                     }),
                     _buildPopularEvents(),
-                    
+
                     // All Activities Section
                     _buildSectionHeader('Upcoming Events', () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const AllActivitiesScreen()),
+                        MaterialPageRoute(
+                          builder: (context) => const AllActivitiesScreen(),
+                        ),
                       );
                     }),
                     _buildUpcomingEvents(),
-                    
+
                     const SizedBox(height: 80), // Bottom padding
                   ],
                 ),
@@ -229,10 +249,15 @@ class _ActivitiesHomeViewState extends State<ActivitiesHomeView> {
 
   Widget _buildHeader(String? userId) {
     return StreamBuilder<DocumentSnapshot>(
-      stream: userId != null ? FirebaseFirestore.instance.collection('users').doc(userId).snapshots() : null,
+      stream: userId != null
+          ? FirebaseFirestore.instance
+                .collection('users')
+                .doc(userId)
+                .snapshots()
+          : null,
       builder: (context, snapshot) {
         final String userName = snapshot.data?.get('name') ?? 'Volunteer';
-        
+
         return Padding(
           padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
           child: Row(
@@ -243,10 +268,7 @@ class _ActivitiesHomeViewState extends State<ActivitiesHomeView> {
                 children: [
                   const Text(
                     'Welcome back,',
-                    style: TextStyle(
-                      color: Color(0xFF888888),
-                      fontSize: 14,
-                    ),
+                    style: TextStyle(color: Color(0xFF888888), fontSize: 14),
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -262,9 +284,11 @@ class _ActivitiesHomeViewState extends State<ActivitiesHomeView> {
               // Notification
               GestureDetector(
                 onTap: () {
-                   Navigator.push(
+                  Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => NotificationScreen()),
+                    MaterialPageRoute(
+                      builder: (context) => NotificationScreen(),
+                    ),
                   );
                 },
                 child: Stack(
@@ -275,7 +299,11 @@ class _ActivitiesHomeViewState extends State<ActivitiesHomeView> {
                         border: Border.all(color: Colors.grey[300]!),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.notifications_none_rounded, size: 24, color: Color(0xFF1A1A1A)),
+                      child: const Icon(
+                        Icons.notifications_none_rounded,
+                        size: 24,
+                        color: Color(0xFF1A1A1A),
+                      ),
                     ),
                     Positioned(
                       right: 10,
@@ -317,7 +345,11 @@ class _ActivitiesHomeViewState extends State<ActivitiesHomeView> {
                 decoration: InputDecoration(
                   hintText: 'Search events...',
                   hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
-                  prefixIcon: Icon(Icons.search, color: const Color(0xFFFF6B9D), size: 22),
+                  prefixIcon: Icon(
+                    Icons.search,
+                    color: const Color(0xFFFF6B9D),
+                    size: 22,
+                  ),
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.symmetric(vertical: 14),
                 ),
@@ -335,7 +367,11 @@ class _ActivitiesHomeViewState extends State<ActivitiesHomeView> {
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: const Color(0xFFE0E0E0)),
               ),
-              child: Icon(Icons.qr_code_scanner_rounded, color: const Color(0xFFFF6B9D), size: 24),
+              child: Icon(
+                Icons.qr_code_scanner_rounded,
+                color: const Color(0xFFFF6B9D),
+                size: 24,
+              ),
             ),
           ),
           const SizedBox(width: 12),
@@ -369,7 +405,11 @@ class _ActivitiesHomeViewState extends State<ActivitiesHomeView> {
               margin: const EdgeInsets.only(right: 10),
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
               decoration: BoxDecoration(
-                color: isSelected ? const Color(0xFFFF6B9D) : const Color(0xFFFF6B9D).withOpacity(0.1), // Pink tint for unselected
+                color: isSelected
+                    ? const Color(0xFFFF6B9D)
+                    : const Color(
+                        0xFFFF6B9D,
+                      ).withOpacity(0.1), // Pink tint for unselected
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
@@ -407,12 +447,13 @@ class _ActivitiesHomeViewState extends State<ActivitiesHomeView> {
               children: const [
                 Text(
                   'See All',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFF888888),
-                  ),
+                  style: TextStyle(fontSize: 12, color: Color(0xFF888888)),
                 ),
-                Icon(Icons.arrow_right_rounded, size: 18, color: Color(0xFF888888)),
+                Icon(
+                  Icons.arrow_right_rounded,
+                  size: 18,
+                  color: Color(0xFF888888),
+                ),
               ],
             ),
           ),
@@ -427,17 +468,23 @@ class _ActivitiesHomeViewState extends State<ActivitiesHomeView> {
       child: StreamBuilder<List<Map<String, dynamic>>>(
         stream: _firestoreService.getActivities(),
         builder: (context, snapshot) {
-          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-          
+          if (!snapshot.hasData)
+            return const Center(child: CircularProgressIndicator());
+
           final activities = snapshot.data!;
           // Filter logic
           final filtered = activities.where((a) {
-             final matchesSearch = (a['title'] as String? ?? '').toLowerCase().contains(_searchQuery.toLowerCase());
-             final matchesCategory = _selectedCategory == 'All' || (a['category'] as String? ?? '') == _selectedCategory;
-             return matchesSearch && matchesCategory;
+            final matchesSearch = (a['title'] as String? ?? '')
+                .toLowerCase()
+                .contains(_searchQuery.toLowerCase());
+            final matchesCategory =
+                _selectedCategory == 'All' ||
+                (a['category'] as String? ?? '') == _selectedCategory;
+            return matchesSearch && matchesCategory;
           }).toList();
 
-          if (filtered.isEmpty) return const Center(child: Text('No events found'));
+          if (filtered.isEmpty)
+            return const Center(child: Text('No events found'));
 
           return ListView.builder(
             padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -457,13 +504,17 @@ class _ActivitiesHomeViewState extends State<ActivitiesHomeView> {
       stream: _firestoreService.getActivities(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) return const SizedBox.shrink();
-        
+
         final activities = snapshot.data!;
         // Filter logic (same as above)
         final filtered = activities.where((a) {
-             final matchesSearch = (a['title'] as String? ?? '').toLowerCase().contains(_searchQuery.toLowerCase());
-             final matchesCategory = _selectedCategory == 'All' || (a['category'] as String? ?? '') == _selectedCategory;
-             return matchesSearch && matchesCategory;
+          final matchesSearch = (a['title'] as String? ?? '')
+              .toLowerCase()
+              .contains(_searchQuery.toLowerCase());
+          final matchesCategory =
+              _selectedCategory == 'All' ||
+              (a['category'] as String? ?? '') == _selectedCategory;
+          return matchesSearch && matchesCategory;
         }).toList();
 
         return ListView.builder(
@@ -502,20 +553,24 @@ class _ActivitiesHomeViewState extends State<ActivitiesHomeView> {
                     context,
                     MaterialPageRoute(builder: (context) => QRScannerScreen()),
                   );
-                  
+
                   if (result != null && result is String) {
-                     codeController.text = result;
-                     // Auto submit
-                     if (context.mounted) {
-                       _handleScanSubmit(context, result);
-                     }
+                    codeController.text = result;
+                    // Auto submit
+                    if (context.mounted) {
+                      _handleScanSubmit(context, result);
+                    }
                   }
                 },
                 child: const Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.qr_code_scanner, color: Colors.white, size: 48),
+                      Icon(
+                        Icons.qr_code_scanner,
+                        color: Colors.white,
+                        size: 48,
+                      ),
                       SizedBox(height: 16),
                       Text(
                         'Tap to Scan',
@@ -557,7 +612,10 @@ class _ActivitiesHomeViewState extends State<ActivitiesHomeView> {
                 if (activity != null && context.mounted) {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => ActivityDetailScreen(activity: activity)),
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          ActivityDetailScreen(activity: activity),
+                    ),
                   );
                 } else if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -577,31 +635,32 @@ class _ActivitiesHomeViewState extends State<ActivitiesHomeView> {
   }
 
   Future<void> _handleScanSubmit(BuildContext context, String code) async {
-     if (code.isNotEmpty) {
-        Navigator.pop(context); // Close dialog
-        // Fetch activity and navigate
-        try {
-          final activity = await _firestoreService.getActivity(code);
-          if (activity != null && context.mounted) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => ActivityDetailScreen(activity: activity)),
-            );
-          } else if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Activity not found')),
-            );
-          }
-        } catch (e) {
-             if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Error: $e')),
-                );
-             }
+    if (code.isNotEmpty) {
+      Navigator.pop(context); // Close dialog
+      // Fetch activity and navigate
+      try {
+        final activity = await _firestoreService.getActivity(code);
+        if (activity != null && context.mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ActivityDetailScreen(activity: activity),
+            ),
+          );
+        } else if (context.mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Activity not found')));
         }
-     }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Error: $e')));
+        }
+      }
+    }
   }
-
 }
 
 class _PopularEventCard extends StatelessWidget {
@@ -623,18 +682,18 @@ class _PopularEventCard extends StatelessWidget {
     Color statusBg = const Color(0xFFE3F2FD);
 
     if (activity['startDate'] != null) {
-       if (activity['startDate'] is Timestamp) {
-         startDate = (activity['startDate'] as Timestamp).toDate();
-       } else {
-         startDate = DateTime.tryParse(activity['startDate'].toString());
-       }
+      if (activity['startDate'] is Timestamp) {
+        startDate = (activity['startDate'] as Timestamp).toDate();
+      } else {
+        startDate = DateTime.tryParse(activity['startDate'].toString());
+      }
     }
     if (activity['endDate'] != null) {
-       if (activity['endDate'] is Timestamp) {
-         endDate = (activity['endDate'] as Timestamp).toDate();
-       } else {
-         endDate = DateTime.tryParse(activity['endDate'].toString());
-       }
+      if (activity['endDate'] is Timestamp) {
+        endDate = (activity['endDate'] as Timestamp).toDate();
+      } else {
+        endDate = DateTime.tryParse(activity['endDate'].toString());
+      }
     }
 
     if (startDate != null) {
@@ -643,7 +702,8 @@ class _PopularEventCard extends StatelessWidget {
         status = 'Completed';
         statusColor = const Color(0xFF4CAF50); // Green
         statusBg = const Color(0xFFE8F5E9);
-      } else if (now.isAfter(startDate!) && (endDate == null || now.isBefore(endDate!))) {
+      } else if (now.isAfter(startDate!) &&
+          (endDate == null || now.isBefore(endDate!))) {
         status = 'In Progress';
         statusColor = const Color(0xFFFF9800); // Orange
         statusBg = const Color(0xFFFFF3E0);
@@ -654,7 +714,9 @@ class _PopularEventCard extends StatelessWidget {
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => ActivityDetailScreen(activity: activity)),
+          MaterialPageRoute(
+            builder: (context) => ActivityDetailScreen(activity: activity),
+          ),
         );
       },
       child: Container(
@@ -685,21 +747,77 @@ class _PopularEventCard extends StatelessWidget {
                       height: 140,
                       width: double.infinity,
                       child: posterUrl.isNotEmpty
-                          ? Image.network(
-                              posterUrl, 
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Container(color: Colors.grey[200], child: const Icon(Icons.broken_image, color: Colors.grey));
+                          ? Builder(
+                              builder: (context) {
+                                final cleanPosterUrl = posterUrl
+                                    .trim()
+                                    .replaceAll(RegExp(r'\s+'), '');
+                                if (cleanPosterUrl.startsWith('data:image')) {
+                                  try {
+                                    final commaIndex = cleanPosterUrl.indexOf(
+                                      ',',
+                                    );
+                                    if (commaIndex != -1) {
+                                      final base64Data = cleanPosterUrl
+                                          .substring(commaIndex + 1);
+                                      return Image.memory(
+                                        base64Decode(base64Data),
+                                        fit: BoxFit.cover,
+                                        errorBuilder:
+                                            (context, error, stackTrace) {
+                                              return Container(
+                                                color: Colors.grey[200],
+                                                child: const Icon(
+                                                  Icons.broken_image,
+                                                  color: Colors.grey,
+                                                ),
+                                              );
+                                            },
+                                      );
+                                    }
+                                  } catch (e) {
+                                    // Fall through
+                                  }
+                                  return Container(
+                                    color: Colors.grey[200],
+                                    child: const Icon(
+                                      Icons.broken_image,
+                                      color: Colors.grey,
+                                    ),
+                                  );
+                                }
+                                return Image.network(
+                                  posterUrl,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      color: Colors.grey[200],
+                                      child: const Icon(
+                                        Icons.broken_image,
+                                        color: Colors.grey,
+                                      ),
+                                    );
+                                  },
+                                );
                               },
                             )
-                          : Container(color: Colors.grey[200], child: const Icon(Icons.image, color: Colors.grey)),
+                          : Container(
+                              color: Colors.grey[200],
+                              child: const Icon(
+                                Icons.image,
+                                color: Colors.grey,
+                              ),
+                            ),
                     ),
                   ),
                   Positioned(
                     top: 8,
                     right: 8,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: statusBg,
                         borderRadius: BorderRadius.circular(8),
@@ -736,7 +854,11 @@ class _PopularEventCard extends StatelessWidget {
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      const Icon(Icons.people_outline_rounded, size: 16, color: Color(0xFFFF6B9D)),
+                      const Icon(
+                        Icons.people_outline_rounded,
+                        size: 16,
+                        color: Color(0xFFFF6B9D),
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         '$participants Going',
@@ -751,12 +873,19 @@ class _PopularEventCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      const Icon(Icons.location_on_outlined, size: 16, color: Color(0xFF9CA3AF)),
+                      const Icon(
+                        Icons.location_on_outlined,
+                        size: 16,
+                        color: Color(0xFF9CA3AF),
+                      ),
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(
                           location,
-                          style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF6B7280),
+                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -783,41 +912,41 @@ class _UpcomingEventCard extends StatelessWidget {
     final String posterUrl = (activity['posterUrl'] as String?) ?? '';
     final String title = (activity['title'] as String?) ?? 'Untitled';
     final String location = (activity['location'] as String?) ?? 'Unknown';
-    
+
     // Date formatting
     String month = 'TBA';
     String day = '--';
     String time = '';
-    
+
     // Status Logic
     DateTime? startDate;
     DateTime? endDate;
     String status = 'Upcoming';
     Color statusColor = const Color(0xFF2196F3); // Blue
     Color statusBg = const Color(0xFFE3F2FD);
-    
+
     if (activity['startDate'] != null) {
-       try {
-         DateTime date;
-         if (activity['startDate'] is Timestamp) {
-           date = (activity['startDate'] as Timestamp).toDate();
-         } else {
-           date = DateTime.parse(activity['startDate'].toString());
-         }
-         startDate = date;
-         month = DateFormat('MMM').format(date).toUpperCase();
-         day = DateFormat('d').format(date);
-         time = DateFormat('h:mm a').format(date);
-       } catch (_) {}
+      try {
+        DateTime date;
+        if (activity['startDate'] is Timestamp) {
+          date = (activity['startDate'] as Timestamp).toDate();
+        } else {
+          date = DateTime.parse(activity['startDate'].toString());
+        }
+        startDate = date;
+        month = DateFormat('MMM').format(date).toUpperCase();
+        day = DateFormat('d').format(date);
+        time = DateFormat('h:mm a').format(date);
+      } catch (_) {}
     }
     if (activity['endDate'] != null) {
-       try {
+      try {
         if (activity['endDate'] is Timestamp) {
           endDate = (activity['endDate'] as Timestamp).toDate();
         } else {
           endDate = DateTime.parse(activity['endDate'].toString());
         }
-       } catch (_) {}
+      } catch (_) {}
     }
 
     if (startDate != null) {
@@ -826,7 +955,8 @@ class _UpcomingEventCard extends StatelessWidget {
         status = 'Completed';
         statusColor = const Color(0xFF4CAF50); // Green
         statusBg = const Color(0xFFE8F5E9);
-      } else if (now.isAfter(startDate!) && (endDate == null || now.isBefore(endDate!))) {
+      } else if (now.isAfter(startDate!) &&
+          (endDate == null || now.isBefore(endDate!))) {
         status = 'In Progress';
         statusColor = const Color(0xFFFF9800); // Orange
         statusBg = const Color(0xFFFFF3E0);
@@ -837,7 +967,9 @@ class _UpcomingEventCard extends StatelessWidget {
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => ActivityDetailScreen(activity: activity)),
+          MaterialPageRoute(
+            builder: (context) => ActivityDetailScreen(activity: activity),
+          ),
         );
       },
       child: Container(
@@ -863,14 +995,63 @@ class _UpcomingEventCard extends StatelessWidget {
                 width: 90,
                 height: 90,
                 child: posterUrl.isNotEmpty
-                    ? Image.network(
-                        posterUrl, 
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(color: Colors.grey[200], child: const Icon(Icons.broken_image, color: Colors.grey));
+                    ? Builder(
+                        builder: (context) {
+                          final cleanPosterUrl = posterUrl.trim().replaceAll(
+                            RegExp(r'\s+'),
+                            '',
+                          );
+                          if (cleanPosterUrl.startsWith('data:image')) {
+                            try {
+                              final commaIndex = cleanPosterUrl.indexOf(',');
+                              if (commaIndex != -1) {
+                                final base64Data = cleanPosterUrl.substring(
+                                  commaIndex + 1,
+                                );
+                                return Image.memory(
+                                  base64Decode(base64Data),
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      color: Colors.grey[200],
+                                      child: const Icon(
+                                        Icons.broken_image,
+                                        color: Colors.grey,
+                                      ),
+                                    );
+                                  },
+                                );
+                              }
+                            } catch (e) {
+                              // Fall through
+                            }
+                            return Container(
+                              color: Colors.grey[200],
+                              child: const Icon(
+                                Icons.broken_image,
+                                color: Colors.grey,
+                              ),
+                            );
+                          }
+                          return Image.network(
+                            posterUrl,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                color: Colors.grey[200],
+                                child: const Icon(
+                                  Icons.broken_image,
+                                  color: Colors.grey,
+                                ),
+                              );
+                            },
+                          );
                         },
                       )
-                    : Container(color: Colors.grey[200], child: const Icon(Icons.image, color: Colors.grey)),
+                    : Container(
+                        color: Colors.grey[200],
+                        child: const Icon(Icons.image, color: Colors.grey),
+                      ),
               ),
             ),
             const SizedBox(width: 16),
@@ -882,7 +1063,10 @@ class _UpcomingEventCard extends StatelessWidget {
                   // Status Badge
                   Container(
                     margin: const EdgeInsets.only(bottom: 4),
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: statusBg,
                       borderRadius: BorderRadius.circular(4),
@@ -910,23 +1094,37 @@ class _UpcomingEventCard extends StatelessWidget {
                   if (time.isNotEmpty)
                     Row(
                       children: [
-                        const Icon(Icons.access_time_rounded, size: 14, color: Color(0xFFFF6B9D)),
+                        const Icon(
+                          Icons.access_time_rounded,
+                          size: 14,
+                          color: Color(0xFFFF6B9D),
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           time,
-                          style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF6B7280),
+                          ),
                         ),
                       ],
                     ),
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      const Icon(Icons.location_on_outlined, size: 16, color: Color(0xFF9CA3AF)),
+                      const Icon(
+                        Icons.location_on_outlined,
+                        size: 16,
+                        color: Color(0xFF9CA3AF),
+                      ),
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(
                           location,
-                          style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF6B7280),
+                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
