@@ -233,10 +233,6 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
                   RegExp(r'\s+'),
                   '',
                 );
-                print('DEBUG: Cleaned Length: ${cleanPosterUrl.length}');
-                print(
-                  'DEBUG: Is Base64? ${cleanPosterUrl.startsWith('data:image')}',
-                );
 
                 if (cleanPosterUrl.isEmpty) {
                   return Container(
@@ -261,7 +257,6 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
                         base64Decode(base64Data),
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) {
-                          print('DEBUG: Base64 Image Render Error: $error');
                           return Container(
                             color: const Color(0xFFFFEEF2),
                             child: const Icon(
@@ -274,7 +269,6 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
                       );
                     }
                   } catch (e) {
-                    print('DEBUG: Base64 Decode Error: $e');
                     return Container(
                       color: const Color(0xFFFFEEF2),
                       child: const Icon(
@@ -286,14 +280,10 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
                   }
                 }
 
-                print(
-                  'DEBUG: Falling through to NetworkImage for: ${cleanPosterUrl.length > 50 ? cleanPosterUrl.substring(0, 50) : cleanPosterUrl}...',
-                );
                 return Image.network(
                   cleanPosterUrl,
                   fit: BoxFit.cover,
                   errorBuilder: (context, error, stackTrace) {
-                    print('DEBUG: Network Image Error: $error');
                     return Container(
                       color: const Color(0xFFFFEEF2),
                       child: const Icon(
