@@ -5,16 +5,12 @@ class StorageService {
   final FirebaseStorage _storage = FirebaseStorage.instance;
 
   // Upload image to Firebase Storage
+  // Upload image to Firebase Storage
   Future<String?> uploadImage(File imageFile, String path) async {
-    try {
-      final ref = _storage.ref().child(path);
-      final uploadTask = await ref.putFile(imageFile);
-      final downloadUrl = await uploadTask.ref.getDownloadURL();
-      return downloadUrl;
-    } catch (e) {
-      print('Error uploading image: $e');
-      return null;
-    }
+    final ref = _storage.ref().child(path);
+    final uploadTask = await ref.putFile(imageFile);
+    final downloadUrl = await uploadTask.ref.getDownloadURL();
+    return downloadUrl;
   }
 
   // Delete image from Firebase Storage

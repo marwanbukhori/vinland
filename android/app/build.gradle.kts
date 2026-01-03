@@ -11,7 +11,8 @@ plugins {
 android {
     namespace = "com.example.engage360"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    // ndkVersion = flutter.ndkVersion  // Commented out to avoid NDK download issues
+
 
     compileOptions {
         isCoreLibraryDesugaringEnabled = true

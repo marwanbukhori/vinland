@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:firebase_auth/firebase_auth.dart';
@@ -130,13 +131,9 @@ class _ActivityCreateScreenState extends State<ActivityCreateScreen> {
     try {
       String? imageUrl;
       if (selectedImage != null) {
-        imageUrl = await storageService.uploadImage(
-          selectedImage!,
-          'activities/${DateTime.now().millisecondsSinceEpoch}.jpg',
-        );
-        if (imageUrl == null) {
-          throw Exception('Failed to upload image. Please try again.');
-        }
+        final bytes = await selectedImage!.readAsBytes();
+        final base64String = base64Encode(bytes);
+        imageUrl = 'data:image/jpeg;base64,$base64String';
       }
 
       final DateTime now = DateTime.now();
@@ -164,7 +161,13 @@ class _ActivityCreateScreenState extends State<ActivityCreateScreen> {
       }
     } catch (e) {
       if (mounted) {
-        _showErrorDialog(context, e.toString());
+        String errorMessage = e.toString();
+        if (errorMessage.contains('object-not-found') ||
+            errorMessage.contains('404')) {
+          errorMessage =
+              'Storage Bucket not found. Please check your Firebase Console to ensure Storage is enabled and a bucket exists.';
+        }
+        _showErrorDialog(context, errorMessage);
       }
     } finally {
       if (mounted) {

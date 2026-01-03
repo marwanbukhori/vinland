@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -226,27 +227,85 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
           ),
           child: AspectRatio(
             aspectRatio: 4 / 3,
-            child: posterUrl.isEmpty
-                ? Container(
+            child: Builder(
+              builder: (context) {
+                final cleanPosterUrl = posterUrl.trim().replaceAll(
+                  RegExp(r'\s+'),
+                  '',
+                );
+                print('DEBUG: Cleaned Length: ${cleanPosterUrl.length}');
+                print(
+                  'DEBUG: Is Base64? ${cleanPosterUrl.startsWith('data:image')}',
+                );
+
+                if (cleanPosterUrl.isEmpty) {
+                  return Container(
                     color: const Color(0xFFFFEEF2),
                     child: const Icon(
                       Icons.image_outlined,
                       size: 72,
                       color: Color(0xFFFFB6C1),
                     ),
-                  )
-                : Image.network(
-                    posterUrl,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
+                  );
+                }
+
+                if (cleanPosterUrl.startsWith('data:image')) {
+                  try {
+                    // Extract the base64 part safely
+                    final commaIndex = cleanPosterUrl.indexOf(',');
+                    if (commaIndex != -1) {
+                      final base64Data = cleanPosterUrl.substring(
+                        commaIndex + 1,
+                      );
+                      return Image.memory(
+                        base64Decode(base64Data),
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          print('DEBUG: Base64 Image Render Error: $error');
+                          return Container(
+                            color: const Color(0xFFFFEEF2),
+                            child: const Icon(
+                              Icons.broken_image_outlined,
+                              size: 72,
+                              color: Color(0xFFFFB6C1),
+                            ),
+                          );
+                        },
+                      );
+                    }
+                  } catch (e) {
+                    print('DEBUG: Base64 Decode Error: $e');
+                    return Container(
                       color: const Color(0xFFFFEEF2),
                       child: const Icon(
                         Icons.broken_image_outlined,
                         size: 72,
                         color: Color(0xFFFFB6C1),
                       ),
-                    ),
-                  ),
+                    );
+                  }
+                }
+
+                print(
+                  'DEBUG: Falling through to NetworkImage for: ${cleanPosterUrl.length > 50 ? cleanPosterUrl.substring(0, 50) : cleanPosterUrl}...',
+                );
+                return Image.network(
+                  cleanPosterUrl,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    print('DEBUG: Network Image Error: $error');
+                    return Container(
+                      color: const Color(0xFFFFEEF2),
+                      child: const Icon(
+                        Icons.broken_image_outlined,
+                        size: 72,
+                        color: Color(0xFFFFB6C1),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
           ),
         ),
         Positioned.fill(
